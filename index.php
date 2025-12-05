@@ -51,16 +51,7 @@ if (isset($_GET['hapus'])) {
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3">
-        <div class="container">
-            <a class="navbar-brand fw-bold fs-4" href="index.php"><i class="bi bi-printer-fill me-2"></i> Zaddy Printing</a>
-            <div class="navbar-nav ms-auto gap-3">
-                <a class="nav-link active fw-semibold" href="index.php">Dashboard</a>
-                <a class="nav-link fw-semibold" href="pelanggan.php">Pelanggan</a>
-                <a class="nav-link fw-semibold" href="produk.php">Produk</a>
-            </div>
-        </div>
-    </nav>
+<?php include 'navbar.php'; ?>
 
     <div class="container py-5">
         
@@ -168,5 +159,12 @@ if (isset($_GET['hapus'])) {
             </div>
         </div>
     </div>
+
+</div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+</html>
+
 </body>
 </html>

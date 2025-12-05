@@ -42,16 +42,7 @@ if (isset($_GET['edit'])) {
 </head>
 <body class="bg-light">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-printer"></i> Zaddy Printing</a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="index.php">Dashboard</a>
-                <a class="nav-link" href="pelanggan.php">Pelanggan</a>
-                <a class="nav-link active fw-bold" href="produk.php">Produk</a>
-            </div>
-        </div>
-    </nav>
+<?php include 'navbar.php'; ?>
 
     <div class="container">
         <div class="row">
@@ -132,4 +123,10 @@ if (isset($_GET['edit'])) {
         </div>
     </div>
 </body>
+
+</div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+</html>
 </html>
