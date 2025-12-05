@@ -1,7 +1,7 @@
 <?php
 include 'koneksi.php';
 
-// 1. AMBIL DATA YANG MAU DIEDIT
+// 1. AMBIL DATA
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
     $data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM transaksi WHERE id = '$id'"));
@@ -13,9 +13,10 @@ if (isset($_POST['update'])) {
     $pelanggan_id = $_POST['pelanggan_id'];
     $produk_id    = $_POST['produk_id'];
     $jumlah       = $_POST['jumlah'];
-    $status       = $_POST['status_pembayaran'];
+    $status_bayar = $_POST['status_pembayaran'];
+    $status_order = $_POST['status_order']; // Tangkap input detail baru
 
-    // Hitung ulang total harga (takutnya ganti produk/jumlah)
+    // Hitung ulang total
     $cek_harga = pg_fetch_assoc(pg_query($conn, "SELECT harga FROM produk WHERE id = '$produk_id'"));
     $total_baru = $cek_harga['harga'] * $jumlah;
 
@@ -24,13 +25,14 @@ if (isset($_POST['update'])) {
               produk_id='$produk_id', 
               jumlah='$jumlah', 
               total_harga='$total_baru', 
-              status_pembayaran='$status' 
+              status_pembayaran='$status_bayar',
+              status_order='$status_order'
               WHERE id='$id'";
 
     if (pg_query($conn, $query)) {
         echo "<script>alert('Update Berhasil!'); window.location='index.php';</script>";
     } else {
-        echo "Gagal update: " . pg_last_error($conn);
+        echo "Gagal: " . pg_last_error($conn);
     }
 }
 ?>
@@ -53,7 +55,7 @@ if (isset($_POST['update'])) {
                 <input type="hidden" name="id" value="<?= $data['id'] ?>">
 
                 <div class="mb-3">
-                    <label>Pelanggan</label>
+                    <label class="fw-bold small">Pelanggan</label>
                     <select name="pelanggan_id" class="form-select">
                         <?php
                         $p_query = pg_query($conn, "SELECT * FROM pelanggan");
@@ -66,7 +68,7 @@ if (isset($_POST['update'])) {
                 </div>
 
                 <div class="mb-3">
-                    <label>Produk</label>
+                    <label class="fw-bold small">Produk</label>
                     <select name="produk_id" class="form-select">
                         <?php
                         $pr_query = pg_query($conn, "SELECT * FROM produk");
@@ -79,16 +81,31 @@ if (isset($_POST['update'])) {
                 </div>
 
                 <div class="mb-3">
-                    <label>Qty / Jumlah</label>
+                    <label class="fw-bold small">Qty</label>
                     <input type="number" name="jumlah" class="form-control" value="<?= $data['jumlah'] ?>">
                 </div>
 
-                <div class="mb-3">
-                    <label>Status Pembayaran</label>
-                    <select name="status_pembayaran" class="form-select">
-                        <option value="Lunas" <?= ($data['status_pembayaran'] == 'Lunas') ? 'selected' : '' ?>>✅ Lunas</option>
-                        <option value="Belum Lunas" <?= ($data['status_pembayaran'] != 'Lunas') ? 'selected' : '' ?>>⏳ Belum Lunas</option>
-                    </select>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold small">Pembayaran</label>
+                        <select name="status_pembayaran" class="form-select">
+                            <option value="Lunas" <?= ($data['status_pembayaran'] == 'Lunas') ? 'selected' : '' ?>>✅ Lunas</option>
+                            <option value="Belum Lunas" <?= ($data['status_pembayaran'] != 'Lunas') ? 'selected' : '' ?>>⏳ Belum</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold small">Status Order (Detail)</label>
+                        <select name="status_order" class="form-select bg-light">
+                            <?php 
+                            $opts = ['Proses', 'Selesai', 'Diambil', 'Done'];
+                            foreach($opts as $o) {
+                                $sel = ($data['status_order'] == $o) ? 'selected' : '';
+                                echo "<option value='$o' $sel>$o</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
                 </div>
 
                 <button type="submit" name="update" class="btn btn-success w-100">Simpan Perubahan</button>
