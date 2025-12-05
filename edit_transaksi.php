@@ -30,7 +30,7 @@ if (isset($_POST['update'])) {
               WHERE id='$id'";
 
     if (pg_query($conn, $query)) {
-        echo "<script>alert('Update Berhasil!'); window.location='index.php';</script>";
+        echo "<script>window.location='index.php';</script>";
     } else {
         echo "Gagal: " . pg_last_error($conn);
     }

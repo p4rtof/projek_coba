@@ -92,23 +92,23 @@ if (isset($_GET['hapus'])) {
                             ?>
                             <tr>
                                 <td class="fw-bold text-primary"><?= $id_keren ?></td>
-                                <td class="small text-muted"><?= date('d/m/Y', strtotime($r['tgl_order'])) ?></td>
+                                <td class="text-bold"><?= date('d/m/Y', strtotime($r['tgl_order'])) ?></td>
                                 
                                 <td class="text-start ps-3 fw-bold"><?= $r['p_nama'] ?></td>
                                 
-                                <td class="text-start ps-3 text-muted">
-                                    <i class="bi bi-box-seam"></i> <?= $r['nama_produk'] ?>
+                                <td class="text-start ps-3 ">
+                                    <i class="bi "></i> <?= $r['nama_produk'] ?>
                                 </td>
                                 
-                                <td><span class="badge bg-secondary rounded-pill"><?= $r['jumlah'] ?></span></td>
+                                <td><span class="text-center fw-bold"><?= $r['jumlah'] ?></span></td>
                                 
                                 <td class="fw-bold text-success">Rp <?= number_format($r['total_harga'], 0, ',', '.') ?></td>
                                 
                                 <td>
                                     <?php if($r['status_pembayaran'] == 'Lunas'): ?>
-                                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Lunas</span>
+                                        <span class="badge bg-success"><i class="bi "></i> Lunas</span>
                                     <?php else: ?>
-                                        <span class="badge bg-danger"><i class="bi bi-exclamation-circle"></i> Belum</span>
+                                        <span class="badge bg-danger"><i class="bi "></i> Belum</span>
                                     <?php endif; ?>
                                 </td>
 
@@ -125,11 +125,11 @@ if (isset($_GET['hapus'])) {
 
                                     <?php if($st != 'Done'): ?>
                                         <a href="index.php?naik_status=true&id=<?= $r['id'] ?>&status=<?= $st ?>" 
-                                           class="btn btn-sm btn-<?= $cls ?> btn-status rounded-pill px-3 w-100 fw-bold">
+                                           class="btn btn-sm btn-<?= $cls ?> btn-status rounded-pill px-3 W-60 fw-bold">
                                             <i class="bi bi-<?= $icn ?>"></i> <?= $st ?>
                                         </a>
                                     <?php else: ?>
-                                        <div class="badge bg-success px-3 py-2 w-100"><i class="bi bi-check-all"></i> DONE</div>
+                                        <div class="badge bg-success px-3 py-2 w-60"><i class="bi bi-check-all"></i> DONE</div>
                                     <?php endif; ?>
                                 </td>
 
