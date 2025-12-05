@@ -1,4 +1,4 @@
-<?php include 'includes/koneksi.php'; ?>
+<?php include 'koneksi.php'; ?>
 
 <h3>Cari Pelanggan</h3>
 <form method="GET">

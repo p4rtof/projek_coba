@@ -1,5 +1,5 @@
 <?php 
-include 'includes/koneksi.php'; 
+include 'koneksi.php'; 
 
 // Tangkap ID dari tombol tadi (kalo ada)
 $selected_id = isset($_GET['id_pelanggan']) ? $_GET['id_pelanggan'] : ''; 
