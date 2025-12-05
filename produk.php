@@ -1,62 +1,52 @@
 <?php
-include 'koneksi.php'; // Koneksi
+include 'koneksi.php';
 
-// --- LOGIC CRUD PRODUK ---
-$edit_data = null;
-
-// 1. Hapus
+// HAPUS (Silent)
 if (isset($_GET['hapus'])) {
     $id = $_GET['hapus'];
-    // Hapus transaksi terkait dulu biar aman
     pg_query($conn, "DELETE FROM transaksi WHERE produk_id = $id");
     pg_query($conn, "DELETE FROM produk WHERE id = $id");
     header("Location: produk.php");
 }
 
-// 2. Simpan (Baru / Edit)
+// SIMPAN (Silent)
 if (isset($_POST['simpan'])) {
     $nama = $_POST['nama_produk'];
     $harga = $_POST['harga'];
     $stok = $_POST['stok_bahan'];
 
     if ($_POST['id_edit']) {
-        // Edit
         $id = $_POST['id_edit'];
         $q = "UPDATE produk SET nama_produk='$nama', harga=$harga, stok_bahan=$stok WHERE id=$id";
     } else {
-        // Baru
         $q = "INSERT INTO produk (nama_produk, harga, stok_bahan) VALUES ('$nama', $harga, $stok)";
     }
     pg_query($conn, $q);
     header("Location: produk.php");
 }
 
-// 3. Ambil Data Edit
+// Edit Data
+$edit_data = null;
 if (isset($_GET['edit'])) {
     $id = $_GET['edit'];
     $edit_data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM produk WHERE id=$id"));
 }
-
-// 4. Tampil Data
-$data_produk = pg_query($conn, "SELECT * FROM produk ORDER BY id DESC");
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Data Produk - Zaddy Printing</title>
+    <title>Data Produk</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>body{background:#f4f6f9}</style>
 </head>
-<body>
+<body class="bg-light">
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-printer"></i> Zaddy Printing</a>
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="index.php">Transaksi</a>
+                <a class="nav-link" href="index.php">Dashboard</a>
                 <a class="nav-link" href="pelanggan.php">Pelanggan</a>
                 <a class="nav-link active fw-bold" href="produk.php">Produk</a>
             </div>
@@ -68,29 +58,26 @@ $data_produk = pg_query($conn, "SELECT * FROM produk ORDER BY id DESC");
             <div class="col-md-4 mb-4">
                 <div class="card shadow-sm border-0">
                     <div class="card-body">
-                        <h5 class="fw-bold mb-3"><i class="bi bi-box-seam"></i> <?= $edit_data ? 'Edit Produk' : 'Produk Baru' ?></h5>
+                        <h5 class="fw-bold mb-3"><?= $edit_data ? 'Edit Produk' : 'Produk Baru' ?></h5>
                         <form method="POST">
                             <input type="hidden" name="id_edit" value="<?= $edit_data['id'] ?? '' ?>">
-                            
                             <div class="mb-3">
-                                <label class="form-label small text-muted">Nama Layanan / Produk</label>
-                                <input type="text" name="nama_produk" class="form-control" value="<?= $edit_data['nama_produk'] ?? '' ?>" required placeholder="Misal: Spanduk Flexy">
+                                <label class="small text-muted">Nama Produk</label>
+                                <input type="text" name="nama_produk" class="form-control" value="<?= $edit_data['nama_produk'] ?? '' ?>" required>
                             </div>
-                            
                             <div class="row">
                                 <div class="col-6 mb-3">
-                                    <label class="form-label small text-muted">Harga (Rp)</label>
+                                    <label class="small text-muted">Harga</label>
                                     <input type="number" name="harga" class="form-control" value="<?= $edit_data['harga'] ?? '' ?>" required>
                                 </div>
                                 <div class="col-6 mb-3">
-                                    <label class="form-label small text-muted">Stok/Kuota</label>
+                                    <label class="small text-muted">Stok</label>
                                     <input type="number" name="stok_bahan" class="form-control" value="<?= $edit_data['stok_bahan'] ?? '' ?>" required>
                                 </div>
                             </div>
-
-                            <button type="submit" name="simpan" class="btn btn-primary w-100 fw-bold">Simpan Produk</button>
+                            <button type="submit" name="simpan" class="btn btn-primary w-100 fw-bold">Simpan</button>
                             <?php if($edit_data): ?>
-                                <a href="produk.php" class="btn btn-light w-100 mt-2">Batal Edit</a>
+                                <a href="produk.php" class="btn btn-light w-100 mt-2">Batal</a>
                             <?php endif; ?>
                         </form>
                     </div>
@@ -99,8 +86,12 @@ $data_produk = pg_query($conn, "SELECT * FROM produk ORDER BY id DESC");
 
             <div class="col-md-8">
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-tags"></i> Daftar Harga</h5>
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">Daftar Produk</h5>
+                        <form method="GET" class="d-flex" style="width: 250px;">
+                            <input type="text" name="q" class="form-control form-control-sm me-2" placeholder="Cari produk..." value="<?= $_GET['q'] ?? '' ?>">
+                            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i></button>
+                        </form>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -114,16 +105,21 @@ $data_produk = pg_query($conn, "SELECT * FROM produk ORDER BY id DESC");
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while($row = pg_fetch_assoc($data_produk)): ?>
+                                    <?php 
+                                    // LOGIC QUERY SEARCH
+                                    $keyword = $_GET['q'] ?? '';
+                                    $q_tampil = "SELECT * FROM produk WHERE nama_produk ILIKE '%$keyword%' ORDER BY id DESC";
+                                    $data_produk = pg_query($conn, $q_tampil);
+
+                                    while($row = pg_fetch_assoc($data_produk)): 
+                                    ?>
                                     <tr>
                                         <td class="ps-4 fw-bold"><?= $row['nama_produk'] ?></td>
                                         <td class="text-primary fw-bold">Rp <?= number_format($row['harga'], 0, ',', '.') ?></td>
-                                        <td>
-                                            <span class="badge bg-secondary"><?= $row['stok_bahan'] ?> unit</span>
-                                        </td>
+                                        <td><span class="badge bg-secondary"><?= $row['stok_bahan'] ?></span></td>
                                         <td class="text-end pe-4">
                                             <a href="produk.php?edit=<?= $row['id'] ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                                            <a href="produk.php?hapus=<?= $row['id'] ?>" onclick="return confirm('Hapus produk ini?')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                                            <a href="produk.php?hapus=<?= $row['id'] ?>" onclick="return confirm('Hapus produk?')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
                                         </td>
                                     </tr>
                                     <?php endwhile; ?>
