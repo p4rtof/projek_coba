@@ -1,5 +1,6 @@
 <?php
 include 'koneksi.php';
+include 'auth.php'; // Tambahkan proteksi
 
 $tampil = $_GET['tampil'] ?? 'proses'; // Default tampil: proses (Belum Diambil)
 
@@ -16,11 +17,17 @@ if ($tampil == 'utang') {
 $q = pg_query($conn, "
     SELECT t.*, p.nama AS p_nama, pr.nama_produk 
     FROM transaksi t 
-    JOIN pelanggan p ON t.pelanggan_id=p.id 
-    JOIN produk pr ON t.produk_id=pr.id 
+    JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
+    JOIN produk pr ON t.id_produk=pr.id_produk
     WHERE $kondisi
-    ORDER BY t.tgl_order ASC
+    ORDER BY t.waktu_order ASC
 ");
+
+// TAMBAH: Cek jika query GAGAL, simpan errornya
+$pg_error = null;
+if (!$q) {
+    $pg_error = pg_last_error($conn);
+}
 ?>
 
 <!DOCTYPE html>
@@ -32,7 +39,7 @@ $q = pg_query($conn, "
     <style> /* ... (Ambil Style dari index.php) ... */ </style>
 </head>
 <body>
-    <?php include 'navbar.php'; // Atau copy navbar dari index.php ?>
+    <?php include 'navbar.php'; ?>
 
     <div class="container py-5">
         <h4 class="fw-bold text-dark mb-4">
@@ -43,6 +50,14 @@ $q = pg_query($conn, "
             <a href="laporan_order.php?tampil=proses" class="btn btn-sm <?= $tampil == 'proses' ? 'btn-primary' : 'btn-outline-primary' ?> fw-bold">Belum Diambil</a>
             <a href="laporan_order.php?tampil=utang" class="btn btn-sm <?= $tampil == 'utang' ? 'btn-warning' : 'btn-outline-warning' ?> fw-bold">Belum Lunas</a>
         </div>
+
+        <?php if ($pg_error): ?>
+            <div class="alert alert-danger fw-bold">
+                🚨 ERROR QUERY DATABASE 🚨
+                <br>
+                Mohon cek kolom dan tabel. Detail: `<?= htmlspecialchars($pg_error) ?>`
+            </div>
+        <?php endif; ?>
 
         <div class="card shadow border-0 rounded-4 overflow-hidden">
             <div class="card-body p-0">
@@ -62,19 +77,27 @@ $q = pg_query($conn, "
                         <tbody>
                             <?php 
                             $total_rekap = 0;
-                            while ($r = pg_fetch_assoc($q)) :
-                                if ($r['status_pembayaran'] == 'Belum Lunas') $total_rekap += $r['total_harga'];
+                            
+                            // TAMBAH: Hanya jalankan loop jika query berhasil ($q BUKAN FALSE)
+                            if ($q): 
+                                while ($r = pg_fetch_assoc($q)) :
+                                    if ($r['status_pembayaran'] == 'Belum Lunas') $total_rekap += $r['total_harga'];
                             ?>
                             <tr>
-                                <td class="fw-bold text-primary">#<?= sprintf("%03d", $r['id']) ?></td>
-                                <td><?= date('d M Y', strtotime($r['tgl_order'])) ?></td>
+                                <td class="fw-bold text-primary"><?= $r['id_transaksi'] ?></td> 
+                                <td><?= date('d M Y', strtotime($r['waktu_order'])) ?></td> 
                                 <td class="text-start ps-4 fw-bold"><?= $r['p_nama'] ?></td>
                                 <td class="fw-bold text-success">Rp <?= number_format($r['total_harga'], 0, ',','.') ?></td>
                                 <td><span class="badge rounded-pill bg-<?= $r['status_pembayaran'] == 'Lunas' ? 'success' : 'danger' ?>"><?= $r['status_pembayaran'] ?></span></td>
                                 <td><span class="badge bg-secondary"><?= $r['status_order'] ?></span></td>
-                                <td><a href="invoice.php?id=<?= $r['id'] ?>" class="btn btn-sm btn-info text-white"><i class="bi bi-receipt"></i></a></td>
+                                <td><a href="invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn btn-sm btn-info text-white"><i class="bi bi-receipt"></i></a></td>
                             </tr>
-                            <?php endwhile; ?>
+                            <?php 
+                                endwhile; 
+                            else: 
+                            ?>
+                                <tr><td colspan="7" class="text-center text-muted py-4">Data tidak ditemukan atau terjadi error.</td></tr>
+                            <?php endif; ?>
                         </tbody>
                         <?php if ($tampil == 'utang'): // Tampilkan Total Hanya untuk Belum Lunas ?>
                         <tfoot>
@@ -90,4 +113,7 @@ $q = pg_query($conn, "
         </div>
     </div>
 </body>
+
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </html>

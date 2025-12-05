@@ -1,5 +1,6 @@
 <?php
 include 'koneksi.php';
+include 'auth.php'; // Tambahkan proteksi
 
 // Ambil bulan dan tahun dari input, default ke bulan dan tahun sekarang
 $tahun = $_GET['tahun'] ?? date('Y');
@@ -8,14 +9,14 @@ $bulan = $_GET['bulan'] ?? date('m');
 // Query untuk rekapitulasi harian dalam satu bulan
 $q_harian = pg_query($conn, "
     SELECT 
-        tgl_order, 
+        DATE(waktu_order) AS tgl_order, 
         SUM(total_harga) AS total_omset
     FROM transaksi 
     WHERE 
-        EXTRACT(YEAR FROM tgl_order) = $tahun AND 
-        EXTRACT(MONTH FROM tgl_order) = $bulan AND
+        EXTRACT(YEAR FROM waktu_order) = $tahun AND 
+        EXTRACT(MONTH FROM waktu_order) = $bulan AND
         status_pembayaran = 'Lunas'
-    GROUP BY tgl_order
+    GROUP BY DATE(waktu_order)
     ORDER BY tgl_order ASC
 ");
 
@@ -25,8 +26,8 @@ $q_bulanan = pg_fetch_assoc(pg_query($conn, "
         SUM(total_harga) AS total_omset_bulan
     FROM transaksi 
     WHERE 
-        EXTRACT(YEAR FROM tgl_order) = $tahun AND 
-        EXTRACT(MONTH FROM tgl_order) = $bulan AND
+        EXTRACT(YEAR FROM waktu_order) = $tahun AND 
+        EXTRACT(MONTH FROM waktu_order) = $bulan AND
         status_pembayaran = 'Lunas'
 "));
 $total_bulan_ini = $q_bulanan['total_omset_bulan'] ?? 0;
@@ -41,10 +42,9 @@ $list_bulan = [1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April', 5=>'Mei', 6=
     <title>Laporan Keuangan</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style> /* ... (Ambil Style dari index.php) ... */ </style>
 </head>
 <body>
-    <?php include 'navbar.php'; // Atau copy navbar dari index.php ?>
+    <?php include 'navbar.php'; ?>
 
     <div class="container py-5">
         <h4 class="fw-bold text-dark mb-4">
@@ -109,4 +109,6 @@ $list_bulan = [1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April', 5=>'Mei', 6=
         </div>
     </div>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </html>

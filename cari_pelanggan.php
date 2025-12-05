@@ -22,12 +22,14 @@
 
     while ($row = pg_fetch_assoc($result)) {
         echo "<tr>";
-        echo "<td>" . $row['id'] . "</td>";
+        // FIX: Change id to id_pelanggan
+        echo "<td>" . $row['id_pelanggan'] . "</td>";
         echo "<td>" . $row['nama'] . "</td>";
         // INI TOMBOL AJAIBNYA
         // Dia lempar 'id_pelanggan' ke file transaksi_baru.php
+        // FIX: Change id to id_pelanggan
         echo "<td>
-                <a href='transaksi_baru.php?id_pelanggan=" . $row['id'] . "'>
+                <a href='transaksi_baru.php?id_pelanggan=" . $row['id_pelanggan'] . "'>
                    <button>Pilih buat Order</button>
                 </a>
               </td>";

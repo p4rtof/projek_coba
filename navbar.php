@@ -19,6 +19,11 @@
             
             <a class="nav-link fw-semibold" href="pelanggan.php">Pelanggan</a>
             <a class="nav-link fw-semibold" href="produk.php">Produk</a>
+            
+            <a class="btn btn-danger btn-sm my-auto fw-bold" href="logout.php">
+                <i class="bi bi-box-arrow-right me-1"></i> Logout
+            </a>
+            
         </div>
     </div>
 </nav>

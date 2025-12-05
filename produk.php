@@ -1,11 +1,13 @@
 <?php
 include 'koneksi.php';
+include 'auth.php';
 
 // HAPUS (Silent)
 if (isset($_GET['hapus'])) {
     $id = $_GET['hapus'];
-    pg_query($conn, "DELETE FROM transaksi WHERE produk_id = $id");
-    pg_query($conn, "DELETE FROM produk WHERE id = $id");
+    // FIX: Change to id_produk and quote $id
+    pg_query($conn, "DELETE FROM transaksi WHERE id_produk = '$id'"); 
+    pg_query($conn, "DELETE FROM produk WHERE id_produk = '$id'");
     header("Location: produk.php");
 }
 
@@ -17,8 +19,11 @@ if (isset($_POST['simpan'])) {
 
     if ($_POST['id_edit']) {
         $id = $_POST['id_edit'];
-        $q = "UPDATE produk SET nama_produk='$nama', harga=$harga, stok_bahan=$stok WHERE id=$id";
+        // FIX: Change id to id_produk and quote $id
+        $q = "UPDATE produk SET nama_produk='$nama', harga=$harga, stok_bahan=$stok WHERE id_produk='$id'";
     } else {
+        // PERHATIAN: INSERT ini akan gagal karena kolom id_produk (CHAR(5)) wajib diisi dan bukan auto-increment.
+        // Tambahkan logic untuk generate ID baru di sini.
         $q = "INSERT INTO produk (nama_produk, harga, stok_bahan) VALUES ('$nama', $harga, $stok)";
     }
     pg_query($conn, $q);
@@ -29,7 +34,8 @@ if (isset($_POST['simpan'])) {
 $edit_data = null;
 if (isset($_GET['edit'])) {
     $id = $_GET['edit'];
-    $edit_data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM produk WHERE id=$id"));
+    // FIX: Change id to id_produk and quote $id
+    $edit_data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM produk WHERE id_produk='$id'"));
 }
 ?>
 
@@ -51,8 +57,7 @@ if (isset($_GET['edit'])) {
                     <div class="card-body">
                         <h5 class="fw-bold mb-3"><?= $edit_data ? 'Edit Produk' : 'Produk Baru' ?></h5>
                         <form method="POST">
-                            <input type="hidden" name="id_edit" value="<?= $edit_data['id'] ?? '' ?>">
-                            <div class="mb-3">
+                            <input type="hidden" name="id_edit" value="<?= $edit_data['id_produk'] ?? '' ?>"> <div class="mb-3">
                                 <label class="small text-muted">Nama Produk</label>
                                 <input type="text" name="nama_produk" class="form-control" value="<?= $edit_data['nama_produk'] ?? '' ?>" required>
                             </div>
@@ -98,8 +103,9 @@ if (isset($_GET['edit'])) {
                                 <tbody>
                                     <?php 
                                     // LOGIC QUERY SEARCH
+                                    // FIX: Change id to id_produk
                                     $keyword = $_GET['q'] ?? '';
-                                    $q_tampil = "SELECT * FROM produk WHERE nama_produk ILIKE '%$keyword%' ORDER BY id DESC";
+                                    $q_tampil = "SELECT * FROM produk WHERE nama_produk ILIKE '%$keyword%' ORDER BY id_produk DESC";
                                     $data_produk = pg_query($conn, $q_tampil);
 
                                     while($row = pg_fetch_assoc($data_produk)): 
@@ -107,10 +113,10 @@ if (isset($_GET['edit'])) {
                                     <tr>
                                         <td class="ps-4 fw-bold"><?= $row['nama_produk'] ?></td>
                                         <td class="text-primary fw-bold">Rp <?= number_format($row['harga'], 0, ',', '.') ?></td>
-                                        <td><span class="badge bg-secondary"><?= $row['stok_bahan'] ?></span></td>
+                                        <td><span class="text-style fw-bold"><?= $row['stok_bahan'] ?></span></td>
                                         <td class="text-end pe-4">
-                                            <a href="produk.php?edit=<?= $row['id'] ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                                            <a href="produk.php?hapus=<?= $row['id'] ?>" onclick="return confirm('Hapus produk?')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                                            <a href="produk.php?edit=<?= $row['id_produk'] ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                                            <a href="produk.php?hapus=<?= $row['id_produk'] ?>" onclick="return confirm('Hapus produk?')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
                                         </td>
                                     </tr>
                                     <?php endwhile; ?>
@@ -128,5 +134,4 @@ if (isset($_GET['edit'])) {
 </body>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-</html>
 </html>

@@ -4,7 +4,8 @@ include 'koneksi.php';
 // 1. AMBIL DATA
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
-    $data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM transaksi WHERE id = '$id'"));
+    // FIX: Change id to id_transaksi and quote $id
+    $data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM transaksi WHERE id_transaksi = '$id'"));
 }
 
 // 2. PROSES UPDATE
@@ -17,17 +18,19 @@ if (isset($_POST['update'])) {
     $status_order = $_POST['status_order']; // Tangkap input detail baru
 
     // Hitung ulang total
-    $cek_harga = pg_fetch_assoc(pg_query($conn, "SELECT harga FROM produk WHERE id = '$produk_id'"));
+    // FIX: Change id to id_produk
+    $cek_harga = pg_fetch_assoc(pg_query($conn, "SELECT harga FROM produk WHERE id_produk = '$produk_id'"));
     $total_baru = $cek_harga['harga'] * $jumlah;
 
+    // FIX: Change column names
     $query = "UPDATE transaksi SET 
-              pelanggan_id='$pelanggan_id', 
-              produk_id='$produk_id', 
+              id_pelanggan='$pelanggan_id', 
+              id_produk='$produk_id', 
               jumlah='$jumlah', 
               total_harga='$total_baru', 
               status_pembayaran='$status_bayar',
               status_order='$status_order'
-              WHERE id='$id'";
+              WHERE id_transaksi='$id'";
 
     if (pg_query($conn, $query)) {
         echo "<script>window.location='index.php';</script>";
@@ -48,20 +51,18 @@ if (isset($_POST['update'])) {
 <div class="container mt-5">
     <div class="card shadow col-md-6 mx-auto">
         <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Edit Transaksi #<?= $data['id'] ?></h5>
-        </div>
+            <h5 class="mb-0">Edit Transaksi #<?= $data['id_transaksi'] ?></h5> </div>
         <div class="card-body">
             <form method="POST">
-                <input type="hidden" name="id" value="<?= $data['id'] ?>">
-
-                <div class="mb-3">
+                <input type="hidden" name="id" value="<?= $data['id_transaksi'] ?>"> <div class="mb-3">
                     <label class="fw-bold small">Pelanggan</label>
                     <select name="pelanggan_id" class="form-select">
                         <?php
                         $p_query = pg_query($conn, "SELECT * FROM pelanggan");
                         while($p = pg_fetch_assoc($p_query)){
-                            $sel = ($p['id'] == $data['pelanggan_id']) ? 'selected' : '';
-                            echo "<option value='{$p['id']}' $sel>{$p['nama']}</option>";
+                            // FIX: id_pelanggan
+                            $sel = ($p['id_pelanggan'] == $data['id_pelanggan']) ? 'selected' : '';
+                            echo "<option value='{$p['id_pelanggan']}' $sel>{$p['nama']}</option>";
                         }
                         ?>
                     </select>
@@ -73,8 +74,9 @@ if (isset($_POST['update'])) {
                         <?php
                         $pr_query = pg_query($conn, "SELECT * FROM produk");
                         while($pr = pg_fetch_assoc($pr_query)){
-                            $sel = ($pr['id'] == $data['produk_id']) ? 'selected' : '';
-                            echo "<option value='{$pr['id']}' $sel>{$pr['nama_produk']}</option>";
+                            // FIX: id_produk
+                            $sel = ($pr['id_produk'] == $data['id_produk']) ? 'selected' : '';
+                            echo "<option value='{$pr['id_produk']}' $sel>{$pr['nama_produk']}</option>";
                         }
                         ?>
                     </select>

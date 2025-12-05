@@ -1,13 +1,14 @@
 <?php 
 include 'koneksi.php'; 
+include 'auth.php';
 
 // --- LOGIC WIDGET DASHBOARD (Query Ringkasan) ---
-// 1. Total Omset Hari Ini
-$q_omset = pg_fetch_assoc(pg_query($conn, "SELECT SUM(total_harga) AS total FROM transaksi WHERE tgl_order = CURRENT_DATE"));
+// 1. Total Omset Hari Ini (Kolom waktu_order sudah benar)
+$q_omset = pg_fetch_assoc(pg_query($conn, "SELECT SUM(total_harga) AS total FROM transaksi WHERE waktu_order::date = CURRENT_DATE AND status_pembayaran = 'Lunas'"));
 $omset_hari_ini = $q_omset['total'] ?? 0;
 
-// 2. Jumlah Order Hari Ini
-$q_order = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE tgl_order = CURRENT_DATE"));
+// 2. Jumlah Order Hari Ini (Kolom waktu_order sudah benar)
+$q_order = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE waktu_order::date = CURRENT_DATE"));
 $jumlah_order = $q_order['total'] ?? 0;
 
 // 3. Belum Lunas (Semua Waktu)
@@ -19,11 +20,12 @@ if (isset($_GET['naik_status'])) {
     $id = $_GET['id'];
     $st = $_GET['status'];
     $new = ($st=='Proses')?'Selesai':(($st=='Selesai')?'Diambil':(($st=='Diambil')?'Done':''));
-    if($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id = '$id'");
+    if($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id_transaksi = '$id'"); // ID kolom ganti ke id_transaksi dan dikutip
     header("Location: index.php"); exit();
 }
 if (isset($_GET['hapus'])) {
-    pg_query($conn, "DELETE FROM transaksi WHERE id = '{$_GET['hapus']}'");
+    // ID kolom ganti ke id_transaksi dan dikutip
+    pg_query($conn, "DELETE FROM transaksi WHERE id_transaksi = '{$_GET['hapus']}'"); 
     header("Location: index.php"); exit();
 }
 ?>
@@ -98,6 +100,7 @@ if (isset($_GET['hapus'])) {
             </a>
         </div>
 
+        
         <div class="card shadow border-0 rounded-4 overflow-hidden">
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -108,6 +111,7 @@ if (isset($_GET['hapus'])) {
                                 <th class="py-3">Tanggal</th>
                                 <th class="py-3 text-start ps-4">Pelanggan</th>
                                 <th class="py-3 text-start ps-4">Produk</th>
+                                <th class="py-3 text-start ps-4">QTY</th>
                                 <th class="py-3">Total</th>
                                 <th class="py-3">Status</th>
                                 <th class="py-3">Progress</th>
@@ -116,17 +120,14 @@ if (isset($_GET['hapus'])) {
                         </thead>
                         <tbody>
                             <?php
-                            $q = pg_query($conn, "SELECT t.*, p.nama AS p_nama, pr.nama_produk FROM transaksi t JOIN pelanggan p ON t.pelanggan_id=p.id JOIN produk pr ON t.produk_id=pr.id ORDER BY t.id DESC LIMIT 50");
+                            // FIX: Perbaiki kunci JOIN dan ORDER BY ke id_transaksi
+                            $q = pg_query($conn, "SELECT t.*, p.nama AS p_nama, pr.nama_produk FROM transaksi t JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan JOIN produk pr ON t.id_produk=pr.id_produk ORDER BY t.id_transaksi DESC LIMIT 50");
                             while ($r = pg_fetch_assoc($q)) :
                             ?>
                             <tr style="border-bottom: 1px solid #f0f0f0;">
-                                <td class="fw-bold text-primary">#<?= sprintf("%03d", $r['id']) ?></td>
-                                <td class="small text-muted"><?= date('d M', strtotime($r['tgl_order'])) ?></td>
-                                <td class="text-start ps-4 fw-bold"><?= $r['p_nama'] ?></td>
-                                <td class="text-start ps-4">
-                                    <span class="d-block text-dark fw-semibold"><?= $r['nama_produk'] ?></span>
-                                    <span class="badge bg-light text-secondary border mt-1"><?= $r['jumlah'] ?> pcs</span>
-                                </td>
+                                <td class="fw-bold text-primary"><?= $r['id_transaksi'] ?></td> <td class="small text-muted"><?= date('d M y (H:i)', strtotime($r['waktu_order'])) ?></td> <td class="text-start ps-4 fw-bold"><?= $r['p_nama'] ?></td>
+                                <td class="text-start fw-semibold"><?= $r['nama_produk'] ?></td>
+                                <td class="text-center fw-semibold"><?= $r['jumlah'] ?> pcs</td>
                                 <td class="fw-bold text-success">Rp <?= number_format($r['total_harga'], 0, ',','.') ?></td>
                                 <td>
                                     <?= ($r['status_pembayaran'] == 'Lunas') 
@@ -139,7 +140,7 @@ if (isset($_GET['hapus'])) {
                                     $st = $r['status_order'];
                                     $btn_c = ($st=='Proses')?'warning':(($st=='Selesai')?'info':(($st=='Diambil')?'primary':'success'));
                                     if($st != 'Done'): ?>
-                                        <a href="index.php?naik_status=true&id=<?= $r['id'] ?>&status=<?= $st ?>" 
+                                        <a href="index.php?naik_status=true&id=<?= $r['id_transaksi'] ?>&status=<?= $st ?>" 
                                            class="btn btn-sm btn-<?= $btn_c ?> btn-status rounded-pill w-100 text-white shadow-sm">
                                            <?= $st ?> <i class="bi bi-chevron-right ms-1"></i>
                                         </a>
@@ -148,8 +149,8 @@ if (isset($_GET['hapus'])) {
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <a href="edit_transaksi.php?id=<?= $r['id'] ?>" class="btn btn-sm btn-light text-primary border rounded-circle" title="Edit"><i class="bi bi-pencil-fill"></i></a>
-                                    <a href="index.php?hapus=<?= $r['id'] ?>" onclick="return confirm('Hapus?')" class="btn btn-sm btn-light text-danger border rounded-circle" title="Hapus"><i class="bi bi-trash-fill"></i></a>
+                                    <a href="edit_transaksi.php?id=<?= $r['id_transaksi'] ?>" class="btn btn-sm btn-light text-primary border rounded-circle" title="Edit"><i class="bi bi-pencil-fill"></i></a>
+                                    <a href="index.php?hapus=<?= $r['id_transaksi'] ?>" onclick="return confirm('Hapus?')" class="btn btn-sm btn-light text-danger border rounded-circle" title="Hapus"><i class="bi bi-trash-fill"></i></a>
                                 </td>
                             </tr>
                             <?php endwhile; ?>

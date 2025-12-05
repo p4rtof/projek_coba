@@ -1,11 +1,13 @@
 <?php
 include 'koneksi.php';
+include 'auth.php'; // Tambahkan proteksi
 
 // --- LOGIC HAPUS (Tanpa Alert, Langsung Refresh) ---
 if (isset($_GET['hapus'])) {
     $id = $_GET['hapus'];
-    pg_query($conn, "DELETE FROM transaksi WHERE pelanggan_id = $id");
-    pg_query($conn, "DELETE FROM pelanggan WHERE id = $id");
+    // FIX: Change to id_pelanggan and quote $id
+    pg_query($conn, "DELETE FROM transaksi WHERE id_pelanggan = '$id'");
+    pg_query($conn, "DELETE FROM pelanggan WHERE id_pelanggan = '$id'");
     header("Location: pelanggan.php"); // Langsung refresh
 }
 
@@ -17,8 +19,11 @@ if (isset($_POST['simpan'])) {
 
     if ($_POST['id_edit']) {
         $id = $_POST['id_edit'];
-        $q = "UPDATE pelanggan SET nama='$nama', hp='$hp', alamat='$alamat' WHERE id=$id";
+        // FIX: Change id to id_pelanggan and quote $id
+        $q = "UPDATE pelanggan SET nama='$nama', hp='$hp', alamat='$alamat' WHERE id_pelanggan='$id'";
     } else {
+        // PERHATIAN: INSERT ini akan gagal karena kolom id_pelanggan (CHAR(5)) wajib diisi dan bukan auto-increment.
+        // Tambahkan logic untuk generate ID baru di sini.
         $q = "INSERT INTO pelanggan (nama, hp, alamat) VALUES ('$nama', '$hp', '$alamat')";
     }
     pg_query($conn, $q);
@@ -29,7 +34,8 @@ if (isset($_POST['simpan'])) {
 $edit_data = null;
 if (isset($_GET['edit'])) {
     $id = $_GET['edit'];
-    $edit_data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM pelanggan WHERE id=$id"));
+    // FIX: Change id to id_pelanggan and quote $id
+    $edit_data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM pelanggan WHERE id_pelanggan='$id'"));
 }
 ?>
 
@@ -39,6 +45,23 @@ if (isset($_GET['edit'])) {
     <title>Data Pelanggan</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        /* Gaya tambahan untuk tombol WhatsApp */
+        .btn-whatsapp { 
+            background-color: #0b973eff; 
+            color: white; 
+            border: none;
+            padding: 2px 10px;
+            border-radius: 20px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+        .btn-whatsapp:hover {
+            background-color: #128C7E;
+            color: white;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -51,7 +74,7 @@ if (isset($_GET['edit'])) {
                     <div class="card-body">
                         <h5 class="fw-bold mb-3"><?= $edit_data ? 'Edit Pelanggan' : 'Tambah Pelanggan' ?></h5>
                         <form method="POST">
-                            <input type="hidden" name="id_edit" value="<?= $edit_data['id'] ?? '' ?>">
+                            <input type="hidden" name="id_edit" value="<?= $edit_data['id_pelanggan'] ?? '' ?>">
                             <div class="mb-3">
                                 <label class="small text-muted">Nama</label>
                                 <input type="text" name="nama" class="form-control" value="<?= $edit_data['nama'] ?? '' ?>" required>
@@ -88,7 +111,8 @@ if (isset($_GET['edit'])) {
                                 <thead class="table-light">
                                     <tr>
                                         <th class="ps-4">Nama</th>
-                                        <th>Kontak</th>
+                                        <th>Alamat</th>
+                                        <th>Kontak (HP)</th>
                                         <th class="text-end pe-4">Aksi</th>
                                     </tr>
                                 </thead>
@@ -96,17 +120,21 @@ if (isset($_GET['edit'])) {
                                     <?php 
                                     // LOGIC QUERY SEARCH
                                     $keyword = $_GET['q'] ?? '';
-                                    $q_tampil = "SELECT * FROM pelanggan WHERE nama ILIKE '%$keyword%' ORDER BY id DESC";
+                                    $q_tampil = "SELECT * FROM pelanggan WHERE nama ILIKE '%$keyword%' ORDER BY id_pelanggan DESC";
                                     $data_pelanggan = pg_query($conn, $q_tampil);
 
                                     while($row = pg_fetch_assoc($data_pelanggan)): 
                                     ?>
                                     <tr>
-                                        <td class="ps-4 fw-bold"><?= $row['nama'] ?> <br> <small class="text-muted fw-normal"><?= $row['alamat'] ?></small></td>
-                                        <td><?= $row['hp'] ?></td>
+                                        <td class="ps-4 fw-bold"><?= $row['nama'] ?></td>
+                                        <td><?= $row['alamat'] ?></td> <td>
+                                            <a href="https://wa.me/<?= $row['hp'] ?>" target="_blank" class="btn-whatsapp">
+                                                <i class="bi bi-whatsapp me-1"></i> <?= $row['hp'] ?>
+                                            </a>
+                                        </td>
                                         <td class="text-end pe-4">
-                                            <a href="pelanggan.php?edit=<?= $row['id'] ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                                            <a href="pelanggan.php?hapus=<?= $row['id'] ?>" onclick="return confirm('Hapus pelanggan ini?')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                                            <a href="pelanggan.php?edit=<?= $row['id_pelanggan'] ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                                            <a href="pelanggan.php?hapus=<?= $row['id_pelanggan'] ?>" onclick="return confirm('Hapus pelanggan ini?')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
                                         </td>
                                     </tr>
                                     <?php endwhile; ?>
@@ -120,9 +148,6 @@ if (isset($_GET['edit'])) {
     </div>
 </body>
 
-</div>
-</body>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-</html>
 </html>

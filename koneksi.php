@@ -1,4 +1,7 @@
 <?php
+// TAMBAHKAN INI DI BARIS PERTAMA
+session_start();
+
 $host = "localhost";
 $port = "5432";
 $dbname = "projek_coba";
