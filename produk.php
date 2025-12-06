@@ -2,39 +2,50 @@
 include 'koneksi.php';
 include 'auth.php';
 
-// HAPUS (Silent)
+// --- LOGIC HAPUS (Silent) ---
 if (isset($_GET['hapus'])) {
     $id = $_GET['hapus'];
-    // FIX: Change to id_produk and quote $id
+    // Hapus transaksi terkait dulu biar ga error FK
     pg_query($conn, "DELETE FROM transaksi WHERE id_produk = '$id'"); 
     pg_query($conn, "DELETE FROM produk WHERE id_produk = '$id'");
     header("Location: produk.php");
 }
 
-// SIMPAN (Silent)
+// --- LOGIC SIMPAN (Tambah / Edit) ---
 if (isset($_POST['simpan'])) {
-    $nama = $_POST['nama_produk'];
+    $nama  = $_POST['nama_produk'];
     $harga = $_POST['harga'];
-    $stok = $_POST['stok_bahan'];
+    $stok  = $_POST['stok_bahan'];
+    $jenis = $_POST['jenis_satuan']; // Ambil input jenis (Pcs/Meter)
 
-    if ($_POST['id_edit']) {
+    if (!empty($_POST['id_edit'])) {
+        // --- MODE EDIT ---
         $id = $_POST['id_edit'];
-        // FIX: Change id to id_produk and quote $id
-        $q = "UPDATE produk SET nama_produk='$nama', harga=$harga, stok_bahan=$stok WHERE id_produk='$id'";
+        $q = "UPDATE produk SET nama_produk='$nama', harga=$harga, stok_bahan=$stok, jenis_satuan='$jenis' WHERE id_produk='$id'";
+        pg_query($conn, $q);
     } else {
-        // PERHATIAN: INSERT ini akan gagal karena kolom id_produk (CHAR(5)) wajib diisi dan bukan auto-increment.
-        // Tambahkan logic untuk generate ID baru di sini.
-        $q = "INSERT INTO produk (nama_produk, harga, stok_bahan) VALUES ('$nama', $harga, $stok)";
+        // --- MODE TAMBAH BARU (Auto ID) ---
+        // 1. Ambil ID terakhir (Misal: B005)
+        $q_last = pg_query($conn, "SELECT id_produk FROM produk ORDER BY id_produk DESC LIMIT 1");
+        $last_data = pg_fetch_assoc($q_last);
+        
+        // 2. Generate angka berikutnya
+        // Menggunakan prefix 'B' (Barang) agar beda dengan 'P' (Pelanggan)
+        $angka = $last_data ? (int)substr($last_data['id_produk'], 1) : 0;
+        $id_baru = 'B' . str_pad($angka + 1, 3, '0', STR_PAD_LEFT); // Hasil: B001, B002, dst.
+
+        $q = "INSERT INTO produk (id_produk, nama_produk, harga, stok_bahan, jenis_satuan) 
+              VALUES ('$id_baru', '$nama', $harga, $stok, '$jenis')";
+        pg_query($conn, $q);
     }
-    pg_query($conn, $q);
+    
     header("Location: produk.php");
 }
 
-// Edit Data
+// --- AMBIL DATA EDIT ---
 $edit_data = null;
 if (isset($_GET['edit'])) {
     $id = $_GET['edit'];
-    // FIX: Change id to id_produk and quote $id
     $edit_data = pg_fetch_assoc(pg_query($conn, "SELECT * FROM produk WHERE id_produk='$id'"));
 }
 ?>
@@ -50,30 +61,48 @@ if (isset($_GET['edit'])) {
 
 <?php include 'navbar.php'; ?>
 
-    <div class="container">
+    <div class="container py-4">
         <div class="row">
             <div class="col-md-4 mb-4">
-                <div class="card shadow-sm border-0">
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-header bg-primary text-white rounded-top-4">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i><?= $edit_data ? 'Edit Produk' : 'Produk Baru' ?></h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="fw-bold mb-3"><?= $edit_data ? 'Edit Produk' : 'Produk Baru' ?></h5>
                         <form method="POST">
-                            <input type="hidden" name="id_edit" value="<?= $edit_data['id_produk'] ?? '' ?>"> <div class="mb-3">
-                                <label class="small text-muted">Nama Produk</label>
-                                <input type="text" name="nama_produk" class="form-control" value="<?= $edit_data['nama_produk'] ?? '' ?>" required>
+                            <input type="hidden" name="id_edit" value="<?= $edit_data['id_produk'] ?? '' ?>"> 
+                            
+                            <div class="mb-3">
+                                <label class="small text-muted fw-bold">Nama Produk</label>
+                                <input type="text" name="nama_produk" class="form-control" placeholder="Masukkan Nama Produk" value="<?= $edit_data['nama_produk'] ?? '' ?>" required>
                             </div>
+
+                            <div class="mb-3">
+                                <label class="small text-muted fw-bold">Jenis Satuan / Hitungan</label>
+                                <select name="jenis_satuan" class="form-select border-primary" required>
+                                    <option value="Pcs" <?= ($edit_data['jenis_satuan'] ?? '') == 'Pcs' ? 'selected' : '' ?>>📦 Pcs (Satuan Biasa)</option>
+                                    <option value="Meter" <?= ($edit_data['jenis_satuan'] ?? '') == 'Meter' ? 'selected' : '' ?>>📏 Meter (Hitung Panjang x Lebar)</option>
+                                </select>
+                                <div class="form-text text-primary small fst-italic">
+                                    Pilih "Meter" untuk produk seperti Spanduk/Banner agar sistem otomatis menghitung luas (PxL).
+                                </div>
+                            </div>
+
                             <div class="row">
                                 <div class="col-6 mb-3">
-                                    <label class="small text-muted">Harga</label>
+                                    <label class="small text-muted fw-bold">Harga Dasar</label>
                                     <input type="number" name="harga" class="form-control" value="<?= $edit_data['harga'] ?? '' ?>" required>
+                                    <div class="form-text small">Per Pcs atau Per Meter</div>
                                 </div>
                                 <div class="col-6 mb-3">
-                                    <label class="small text-muted">Stok</label>
+                                    <label class="small text-muted fw-bold">Stok Bahan</label>
                                     <input type="number" name="stok_bahan" class="form-control" value="<?= $edit_data['stok_bahan'] ?? '' ?>" required>
                                 </div>
                             </div>
-                            <button type="submit" name="simpan" class="btn btn-primary w-100 fw-bold">Simpan</button>
+
+                            <button type="submit" name="simpan" class="btn btn-primary w-100 fw-bold rounded-pill">Simpan Data</button>
                             <?php if($edit_data): ?>
-                                <a href="produk.php" class="btn btn-light w-100 mt-2">Batal</a>
+                                <a href="produk.php" class="btn btn-light w-100 mt-2 rounded-pill text-muted">Batal Edit</a>
                             <?php endif; ?>
                         </form>
                     </div>
@@ -81,12 +110,12 @@ if (isset($_GET['edit'])) {
             </div>
 
             <div class="col-md-8">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold">Daftar Produk</h5>
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center rounded-top-4">
+                        <h5 class="mb-0 fw-bold text-dark">Daftar Produk</h5>
                         <form method="GET" class="d-flex" style="width: 250px;">
-                            <input type="text" name="q" class="form-control form-control-sm me-2" placeholder="Cari produk..." value="<?= $_GET['q'] ?? '' ?>">
-                            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i></button>
+                            <input type="text" name="q" class="form-control form-control-sm me-2 rounded-pill ps-3" placeholder="Cari produk..." value="<?= $_GET['q'] ?? '' ?>">
+                            <button type="submit" class="btn btn-sm btn-outline-primary rounded-circle"><i class="bi bi-search"></i></button>
                         </form>
                     </div>
                     <div class="card-body p-0">
@@ -94,7 +123,8 @@ if (isset($_GET['edit'])) {
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th class="ps-4">Nama Produk</th>
+                                        <th class="ps-4 py-3">Nama Produk</th>
+                                        <th>Jenis</th>
                                         <th>Harga</th>
                                         <th>Stok</th>
                                         <th class="text-end pe-4">Aksi</th>
@@ -103,23 +133,39 @@ if (isset($_GET['edit'])) {
                                 <tbody>
                                     <?php 
                                     // LOGIC QUERY SEARCH
-                                    // FIX: Change id to id_produk
                                     $keyword = $_GET['q'] ?? '';
                                     $q_tampil = "SELECT * FROM produk WHERE nama_produk ILIKE '%$keyword%' ORDER BY id_produk DESC";
                                     $data_produk = pg_query($conn, $q_tampil);
 
-                                    while($row = pg_fetch_assoc($data_produk)): 
+                                    if(pg_num_rows($data_produk) > 0):
+                                        while($row = pg_fetch_assoc($data_produk)): 
                                     ?>
                                     <tr>
-                                        <td class="ps-4 fw-bold"><?= $row['nama_produk'] ?></td>
+                                        <td class="ps-4 fw-bold text-dark"><?= $row['nama_produk'] ?></td>
+                                        <td>
+                                            <?php if($row['jenis_satuan'] == 'Meter'): ?>
+                                                <span class="badge bg-warning text-dark"><i class="bi bi-rulers"></i> Meter</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-secondary"><i class="bi bi-box"></i> Pcs</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="text-primary fw-bold">Rp <?= number_format($row['harga'], 0, ',', '.') ?></td>
-                                        <td><span class="text-style fw-bold"><?= $row['stok_bahan'] ?></span></td>
+                                        <td>
+                                            <span class="text-dark fw-bold text-center">
+                                                <?= $row['stok_bahan'] ?>
+                                            </span>
+                                        </td>
                                         <td class="text-end pe-4">
-                                            <a href="produk.php?edit=<?= $row['id_produk'] ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                                            <a href="produk.php?hapus=<?= $row['id_produk'] ?>" onclick="return confirm('Hapus produk?')" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                                            <a href="produk.php?edit=<?= $row['id_produk'] ?>" class="btn btn-sm btn-outline-primary rounded-circle me-1" title="Edit"><i class="bi bi-pencil-fill"></i></a>
+                                            <a href="produk.php?hapus=<?= $row['id_produk'] ?>" onclick="return confirm('Yakin hapus produk ini? History transaksi terkait juga akan terhapus!')" class="btn btn-sm btn-outline-danger rounded-circle" title="Hapus"><i class="bi bi-trash-fill"></i></a>
                                         </td>
                                     </tr>
-                                    <?php endwhile; ?>
+                                    <?php 
+                                        endwhile; 
+                                    else:
+                                    ?>
+                                        <tr><td colspan="5" class="text-center py-4 text-muted fst-italic">Belum ada data produk.</td></tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -130,8 +176,6 @@ if (isset($_GET['edit'])) {
     </div>
 </body>
 
-</div>
-</body>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </html>

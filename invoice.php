@@ -90,9 +90,9 @@ if (!$data) {
                     <div class="col-6 text-end">
                         <small class="text-muted">Tanggal Transaksi:</small>
                         <h6 class="fw-bold mb-0"><?= date('d F Y', strtotime($data['waktu_order'])) ?></h6> 
-                        <small class="d-block">Status Bayar: 
+                        <!-- <small class="d-block">Status Bayar: 
                             <span class="badge bg-<?= $data['status_pembayaran'] == 'Lunas' ? 'success' : 'danger' ?>"><?= $data['status_pembayaran'] ?></span>
-                        </small>
+                        </small> -->
                     </div>
                 </div>
 
@@ -123,7 +123,7 @@ if (!$data) {
                     </tfoot>
                 </table>
 
-                <p class="text-muted small mt-5">Terima kasih atas pesanannya. Mohon segera diselesaikan jika status pembayaran masih "Belum Lunas".</p>
+                <!-- <p class="text-muted small mt-5">Terima kasih atas pesanannya. Mohon segera diselesaikan jika status pembayaran masih "Belum Lunas".</p> -->
             </div>
         </div>
     </div>
