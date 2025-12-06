@@ -1,29 +1,27 @@
 <?php
 include 'koneksi.php';
-include 'auth.php'; // Tambahkan proteksi
+include 'auth.php'; 
 
-$tampil = $_GET['tampil'] ?? 'proses'; // Default tampil: proses (Belum Diambil)
-
+$tampil = $_GET['tampil'] ?? 'proses'; 
 $judul = ($tampil == 'utang') ? 'Daftar Transaksi Belum Lunas' : 'Daftar Order Belum Diambil';
 
 if ($tampil == 'utang') {
-    // REKAP BELUM LUNAS (Hutang Customer)
     $kondisi = "t.status_pembayaran = 'Belum Lunas'";
 } else {
-    // REKAP BELUM DIAMBIL (Order yang masih Proses/Selesai/Diambil, belum Done)
     $kondisi = "t.status_order != 'Done'";
 }
 
+// UPDATE QUERY: Tambahkan LEFT JOIN ke bank_akun untuk ambil nama bank
 $q = pg_query($conn, "
-    SELECT t.*, p.nama AS p_nama, pr.nama_produk 
+    SELECT t.*, p.nama AS p_nama, pr.nama_produk, b.nama_bank 
     FROM transaksi t 
     JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
     JOIN produk pr ON t.id_produk=pr.id_produk
+    LEFT JOIN bank_akun b ON t.id_bank = b.id_bank 
     WHERE $kondisi
     ORDER BY t.waktu_order ASC
 ");
 
-// TAMBAH: Cek jika query GAGAL, simpan errornya
 $pg_error = null;
 if (!$q) {
     $pg_error = pg_last_error($conn);
@@ -53,9 +51,7 @@ if (!$q) {
 
         <?php if ($pg_error): ?>
             <div class="alert alert-danger fw-bold">
-                🚨 ERROR QUERY DATABASE 🚨
-                <br>
-                Mohon cek kolom dan tabel. Detail: `<?= htmlspecialchars($pg_error) ?>`
+                🚨 ERROR QUERY DATABASE 🚨<br>Detail: `<?= htmlspecialchars($pg_error) ?>`
             </div>
         <?php endif; ?>
 
@@ -63,47 +59,55 @@ if (!$q) {
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0 text-center">
-                        <thead>
+                        <thead class="table-light">
                             <tr>
                                 <th class="py-3">ID</th>
                                 <th class="py-3">Tanggal</th>
                                 <th class="py-3 text-start ps-4">Pelanggan</th>
                                 <th class="py-3">Total</th>
                                 <th class="py-3">Pembayaran</th>
-                                <th class="py-3">Progress</th>
+                                <th class="py-3">Metode</th> <th class="py-3">Progress</th>
                                 <th class="py-3">Invoice</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php 
                             $total_rekap = 0;
-                            
-                            // TAMBAH: Hanya jalankan loop jika query berhasil ($q BUKAN FALSE)
                             if ($q): 
                                 while ($r = pg_fetch_assoc($q)) :
                                     if ($r['status_pembayaran'] == 'Belum Lunas') $total_rekap += $r['total_harga'];
                             ?>
                             <tr>
                                 <td class="fw-bold text-primary"><?= $r['id_transaksi'] ?></td> 
-                                <td><?= date('d M Y', strtotime($r['waktu_order'])) ?></td> 
+                                <td class="small"><?= date('d M Y', strtotime($r['waktu_order'])) ?></td> 
                                 <td class="text-start ps-4 fw-bold"><?= $r['p_nama'] ?></td>
                                 <td class="fw-bold text-success">Rp <?= number_format($r['total_harga'], 0, ',','.') ?></td>
                                 <td><span class="badge rounded-pill bg-<?= $r['status_pembayaran'] == 'Lunas' ? 'success' : 'danger' ?>"><?= $r['status_pembayaran'] ?></span></td>
+                                
+                                <td>
+                                    <?php if(($r['metode_pembayaran'] ?? '') == 'Transfer'): ?>
+                                        <span class="badge bg-info text-dark"><i class="bi bi-bank me-1"></i> Transfer</span>
+                                        <div class="small text-muted"><?= $r['nama_bank'] ?></div>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary"><i class="bi bi-cash me-1"></i> Cash</span>
+                                    <?php endif; ?>
+                                </td>
+
                                 <td><span class="badge bg-secondary"><?= $r['status_order'] ?></span></td>
-                                <td><a href="invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn btn-sm btn-info text-white"><i class="bi bi-receipt"></i></a></td>
+                                <td><a href="invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-receipt"></i></a></td>
                             </tr>
                             <?php 
                                 endwhile; 
                             else: 
                             ?>
-                                <tr><td colspan="7" class="text-center text-muted py-4">Data tidak ditemukan atau terjadi error.</td></tr>
+                                <tr><td colspan="8" class="text-center text-muted py-4">Data tidak ditemukan.</td></tr>
                             <?php endif; ?>
                         </tbody>
-                        <?php if ($tampil == 'utang'): // Tampilkan Total Hanya untuk Belum Lunas ?>
+                        <?php if ($tampil == 'utang'): ?>
                         <tfoot>
                              <tr>
                                 <td colspan="3" class="text-end fw-bold">TOTAL HUTANG</td>
-                                <td colspan="4" class="text-danger fw-bold fs-5">Rp <?= number_format($total_rekap, 0, ',','.') ?></td>
+                                <td colspan="5" class="text-danger fw-bold fs-5 text-start ps-4">Rp <?= number_format($total_rekap, 0, ',','.') ?></td>
                             </tr>
                         </tfoot>
                         <?php endif; ?>
@@ -113,7 +117,5 @@ if (!$q) {
         </div>
     </div>
 </body>
-
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </html>

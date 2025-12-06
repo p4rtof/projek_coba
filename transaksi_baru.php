@@ -1,16 +1,19 @@
 <?php 
 include 'koneksi.php'; 
+include 'auth.php'; 
 
 $error_message = ''; 
 $form_pelanggan_id = $_POST['pelanggan_id'] ?? '';
 $form_produk_id = $_POST['produk_id'] ?? '';
 $form_jumlah = $_POST['jumlah'] ?? '1';
 $form_status_bayar = $_POST['status_pembayaran'] ?? 'Lunas';
+$form_metode = $_POST['metode_pembayaran'] ?? 'Cash';
+$form_bank = $_POST['bank_id'] ?? '';
+
 // Default nilai form ukuran
 $form_p = $_POST['panjang'] ?? '';
 $form_l = $_POST['lebar'] ?? '';
 
-// FUNGSI HELPER ID
 function generateNewId($conn, $table, $prefix, $id_column) {
     $q_last = pg_query($conn, "SELECT $id_column FROM $table ORDER BY $id_column DESC LIMIT 1");
     $last_id = pg_fetch_assoc($q_last);
@@ -23,44 +26,40 @@ if (isset($_POST['simpan'])) {
     $produk_id    = $_POST['produk_id'];
     $jumlah       = $_POST['jumlah'];
     $status_bayar = $_POST['status_pembayaran'];
-    $status_order = 'Proses'; 
+    $status_order = 'Proses';
     
-    // Ambil input ukuran (default 1 jika kosong/produk pcs)
+    // DATA PEMBAYARAN BARU
+    $metode       = $_POST['metode_pembayaran'];
+    // Jika Cash, id_bank harus NULL. Jika Transfer, ambil id_bank
+    $id_bank      = ($metode == 'Transfer') ? $_POST['bank_id'] : 'NULL'; 
+    
     $panjang = !empty($_POST['panjang']) ? str_replace(',', '.', $_POST['panjang']) : 1;
     $lebar   = !empty($_POST['lebar']) ? str_replace(',', '.', $_POST['lebar']) : 1;
 
-    // Cek Data Produk
     $cek_produk = pg_fetch_assoc(pg_query($conn, "SELECT harga, stok_bahan, nama_produk, jenis_satuan FROM produk WHERE id_produk = '$produk_id'"));
     $harga_base   = $cek_produk['harga'];
     $stok_now     = $cek_produk['stok_bahan'];
-    $jenis        = $cek_produk['jenis_satuan']; // Ambil jenis (Pcs/Meter)
+    $jenis        = $cek_produk['jenis_satuan']; 
 
-    // --- LOGIKA HITUNG HARGA ---
     if ($jenis == 'Meter') {
-        // Rumus: (P x L x Harga_per_meter) * Jumlah_Pcs
-        // Contoh: (2m x 1m x 20.000) * 1 spanduk = 40.000
         $harga_satuan_fix = $panjang * $lebar * $harga_base;
     } else {
-        // Rumus Biasa
         $harga_satuan_fix = $harga_base;
-        // Reset P & L jadi 0 biar rapi di DB kalau bukan meteran
         $panjang = 0; $lebar = 0;
     }
     
     $total_bayar = $harga_satuan_fix * $jumlah;
-    // ---------------------------
 
     if ($stok_now < $jumlah) {
         $error_message = "<div class='alert alert-danger fw-bold'>❌ Stok Kurang! Sisa: {$stok_now}</div>";
     } else {
         $id_transaksi_baru = generateNewId($conn, 'transaksi', 'T', 'id_transaksi');
         
-        // Query Insert (Ditambah kolom panjang & lebar)
-        $query = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, status_pembayaran, status_order, panjang, lebar) 
-                  VALUES ('$id_transaksi_baru', '$pelanggan_id', '$produk_id', CURRENT_TIMESTAMP, '$jumlah', '$total_bayar', '$status_bayar', '$status_order', '$panjang', '$lebar')";
+        // QUERY INSERT UPDATE: Tambah metode_pembayaran dan id_bank
+        $query = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, status_pembayaran, status_order, panjang, lebar, metode_pembayaran, id_bank) 
+                  VALUES ('$id_transaksi_baru', '$pelanggan_id', '$produk_id', CURRENT_TIMESTAMP, '$jumlah', '$total_bayar', '$status_bayar', '$status_order', '$panjang', '$lebar', '$metode', $id_bank)";
         
         if (pg_query($conn, $query)) {
-            // Kurangi stok
             $stok_baru = $stok_now - $jumlah;
             pg_query($conn, "UPDATE produk SET stok_bahan = $stok_baru WHERE id_produk = '$produk_id'");
             header("Location: index.php"); 
@@ -79,8 +78,7 @@ if (isset($_POST['simpan'])) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         body { background: #f0f2f5; font-family: sans-serif; }
-        /* Animasi biar smooth pas munculin input ukuran */
-        #area_ukuran { transition: all 0.3s ease-in-out; }
+        #area_ukuran, #area_bank { transition: all 0.3s ease-in-out; }
     </style>
 </head>
 <body>
@@ -104,7 +102,6 @@ if (isset($_POST['simpan'])) {
                                     $q = pg_query($conn, "SELECT id_pelanggan, nama FROM pelanggan ORDER BY nama ASC");
                                     while ($p = pg_fetch_assoc($q)) {
                                         $sel = ($p['id_pelanggan'] == $form_pelanggan_id) ? 'selected' : '';
-                                        // Tampilkan ID di form biar admin yang ambil ID manual dari URL nggak bingung
                                         if (isset($_GET['id_pelanggan']) && $_GET['id_pelanggan'] == $p['id_pelanggan']) $sel = 'selected';
                                         echo "<option value='{$p['id_pelanggan']}' $sel>{$p['nama']}</option>";
                                     }
@@ -117,14 +114,10 @@ if (isset($_POST['simpan'])) {
                                 <select name="produk_id" id="produk" class="form-select" onchange="cekJenisProduk()" required>
                                     <option value="" data-harga="0" data-jenis="Pcs">-- Pilih Produk --</option>
                                     <?php
-                                    // PENTING: Ambil kolom jenis_satuan
                                     $q = pg_query($conn, "SELECT id_produk, nama_produk, harga, stok_bahan, jenis_satuan FROM produk ORDER BY nama_produk ASC");
                                     while ($pr = pg_fetch_assoc($q)) {
                                         $sel = ($pr['id_produk'] == $form_produk_id) ? 'selected' : '';
-                                        // Masukkan jenis ke data-attribute biar JS bisa baca
-                                        echo "<option value='{$pr['id_produk']}' data-harga='{$pr['harga']}' data-jenis='{$pr['jenis_satuan']}' $sel>
-                                                {$pr['nama_produk']} (Stok: {$pr['stok_bahan']})
-                                              </option>";
+                                        echo "<option value='{$pr['id_produk']}' data-harga='{$pr['harga']}' data-jenis='{$pr['jenis_satuan']}' $sel>{$pr['nama_produk']} (Stok: {$pr['stok_bahan']})</option>";
                                     }
                                     ?>
                                 </select>
@@ -150,7 +143,7 @@ if (isset($_POST['simpan'])) {
 
                             <div class="row mb-3">
                                 <div class="col-4">
-                                    <label class="fw-bold small text-muted">Qty (Pcs)</label>
+                                    <label class="fw-bold small text-muted">Qty</label>
                                     <input type="number" name="jumlah" id="qty" class="form-control text-center fw-bold" value="<?= $form_jumlah ?>" oninput="hitung()" required> 
                                 </div>
                                 <div class="col-8">
@@ -160,6 +153,32 @@ if (isset($_POST['simpan'])) {
                                         <input type="text" id="total_tampil" class="form-control bg-success bg-opacity-10 fw-bold text-success" readonly value="0">
                                     </div>
                                     <small id="info_rumus" class="text-muted fst-italic" style="font-size: 0.75rem;"></small>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <div class="mb-3">
+                                <label class="fw-bold small text-muted d-block">Metode Pembayaran</label>
+                                <div class="btn-group w-100 mb-2" role="group">
+                                    <input type="radio" class="btn-check" name="metode_pembayaran" id="metode1" value="Cash" onclick="cekMetode()" <?= ($form_metode == 'Cash') ? 'checked' : '' ?>>
+                                    <label class="btn btn-outline-secondary fw-bold" for="metode1"><i class="bi bi-cash"></i> Tunai (Cash)</label>
+
+                                    <input type="radio" class="btn-check" name="metode_pembayaran" id="metode2" value="Transfer" onclick="cekMetode()" <?= ($form_metode == 'Transfer') ? 'checked' : '' ?>>
+                                    <label class="btn btn-outline-primary fw-bold" for="metode2"><i class="bi bi-bank"></i> Transfer</label>
+                                </div>
+
+                                <div id="area_bank" style="display: none;">
+                                    <select name="bank_id" id="bank_id" class="form-select border-primary bg-primary bg-opacity-10 text-primary fw-bold">
+                                        <option value="">-- Pilih Bank Tujuan Transfer --</option>
+                                        <?php
+                                        $q_bank = pg_query($conn, "SELECT * FROM bank_akun");
+                                        while ($b = pg_fetch_assoc($q_bank)) {
+                                            $sel = ($b['id_bank'] == $form_bank) ? 'selected' : '';
+                                            echo "<option value='{$b['id_bank']}' $sel>{$b['nama_bank']} - {$b['no_rekening']} (a.n {$b['atas_nama']})</option>";
+                                        }
+                                        ?>
+                                    </select>
                                 </div>
                             </div>
 
@@ -190,10 +209,8 @@ if (isset($_POST['simpan'])) {
             let areaUkuran = document.getElementById('area_ukuran');
             let info = document.getElementById('info_rumus');
             
-            // Jika jenisnya 'Meter', tampilkan input P x L
             if (jenis === 'Meter') {
                 areaUkuran.style.display = 'flex';
-                // Set default 1 jika kosong biar hitungan gak nol
                 if(document.getElementById('panjang').value == '') document.getElementById('panjang').value = 1;
                 if(document.getElementById('lebar').value == '') document.getElementById('lebar').value = 1;
                 info.innerText = "Rumus: (Panjang x Lebar x Harga) x Qty";
@@ -204,32 +221,43 @@ if (isset($_POST['simpan'])) {
             hitung();
         }
 
+        // FUNGSI TOGGLE BANK
+        function cekMetode() {
+            let metode = document.querySelector('input[name="metode_pembayaran"]:checked').value;
+            let areaBank = document.getElementById('area_bank');
+            let selectBank = document.getElementById('bank_id');
+
+            if (metode === 'Transfer') {
+                areaBank.style.display = 'block';
+                selectBank.setAttribute('required', 'required'); // Wajib pilih jika transfer
+            } else {
+                areaBank.style.display = 'none';
+                selectBank.removeAttribute('required');
+                selectBank.value = ""; // Reset pilihan
+            }
+        }
+
         function hitung() {
             let select = document.getElementById('produk');
             let option = select.options[select.selectedIndex];
-            
             let harga = parseFloat(option.getAttribute('data-harga')) || 0;
             let jenis = option.getAttribute('data-jenis');
             let qty = parseFloat(document.getElementById('qty').value) || 0;
-            
             let total = 0;
 
             if (jenis === 'Meter') {
                 let p = parseFloat(document.getElementById('panjang').value) || 0;
                 let l = parseFloat(document.getElementById('lebar').value) || 0;
-                // Hitung Luas x Harga x Qty
                 total = (p * l * harga) * qty;
             } else {
-                // Hitung Biasa
                 total = harga * qty;
             }
-
             document.getElementById('total_tampil').value = new Intl.NumberFormat('id-ID').format(total);
         }
 
-        // Jalankan saat load (untuk handle error post/back)
         document.addEventListener('DOMContentLoaded', () => {
             cekJenisProduk();
+            cekMetode(); // Cek metode pas load (buat handle error/back button)
         });
     </script>
 </body>
