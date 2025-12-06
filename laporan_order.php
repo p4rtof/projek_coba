@@ -102,7 +102,7 @@ if (!$q) {
                         <?php if ($tampil == 'utang'): // Tampilkan Total Hanya untuk Belum Lunas ?>
                         <tfoot>
                              <tr>
-                                <td colspan="3" class="text-end fw-bold">TOTAL PIUTANG</td>
+                                <td colspan="3" class="text-end fw-bold">TOTAL HUTANG</td>
                                 <td colspan="4" class="text-danger fw-bold fs-5">Rp <?= number_format($total_rekap, 0, ',','.') ?></td>
                             </tr>
                         </tfoot>

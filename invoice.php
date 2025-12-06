@@ -88,6 +88,8 @@ if (!$data) {
                         <small class="d-block">Telp: <?= $data['hp'] ?></small>
                     </div>
                     <div class="col-6 text-end">
+                        <small class="text-muted">ID Transaksi:</small>
+                        <h6 class="fw-bold mb-0"><?= $data['id_transaksi'] ?></h6> 
                         <small class="text-muted">Tanggal Transaksi:</small>
                         <h6 class="fw-bold mb-0"><?= date('d F Y', strtotime($data['waktu_order'])) ?></h6> 
                         <!-- <small class="d-block">Status Bayar: 

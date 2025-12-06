@@ -170,7 +170,7 @@ if (isset($_POST['simpan'])) {
                                     <label class="btn btn-outline-success fw-bold" for="bayar1">LUNAS</label>
 
                                     <input type="radio" class="btn-check" name="status_pembayaran" id="bayar2" value="Belum Lunas" <?= ($form_status_bayar != 'Lunas') ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-warning fw-bold" for="bayar2">UTANG</label>
+                                    <label class="btn btn-outline-warning fw-bold" for="bayar2">BELUM LUNAS</label>
                                 </div>
                             </div>
 

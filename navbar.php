@@ -11,7 +11,7 @@
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdownLaporan">
                     <li><a class="dropdown-item" href="laporan_order.php?tampil=proses"><i class="bi bi-clock-history me-2"></i> Order Belum Diambil</a></li>
-                    <li><a class="dropdown-item" href="laporan_order.php?tampil=utang"><i class="bi bi-wallet-fill me-2"></i> Piutang Pelanggan</a></li>
+                    <li><a class="dropdown-item" href="laporan_order.php?tampil=utang"><i class="bi bi-wallet-fill me-2"></i> Pelanggan Belum Lunas</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="laporan_keuangan.php"><i class="bi bi-graph-up-arrow me-2"></i> Rekap Pendapatan</a></li>
                 </ul>

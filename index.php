@@ -132,7 +132,7 @@ if (isset($_GET['hapus'])) {
                                 <td>
                                     <?= ($r['status_pembayaran'] == 'Lunas') 
                                         ? '<span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success px-3">Lunas</span>' 
-                                        : '<span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger px-3">Utang</span>' 
+                                        : '<span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger px-3">Belum Lunas</span>' 
                                     ?>
                                 </td>
                                 <td>
