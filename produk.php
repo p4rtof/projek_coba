@@ -134,7 +134,7 @@ if (isset($_GET['edit'])) {
                                     <?php 
                                     // LOGIC QUERY SEARCH
                                     $keyword = $_GET['q'] ?? '';
-                                    $q_tampil = "SELECT * FROM produk WHERE nama_produk ILIKE '%$keyword%' ORDER BY id_produk DESC";
+                                    $q_tampil = "SELECT * FROM produk WHERE nama_produk ILIKE '%$keyword%' ORDER BY nama_produk ASC";
                                     $data_produk = pg_query($conn, $q_tampil);
 
                                     if(pg_num_rows($data_produk) > 0):
