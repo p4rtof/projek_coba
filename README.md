@@ -1,12 +1,6 @@
-halo semua
-jadi ini file .php belum jadi
+## selamat berjuang, sukses
 
-ini di support sama gemini
-
-kalau mau pake ambil aja
-
-siapa tau berguna
+sekian, 
 
 terima kasih
 
-kalau ada yang ngerti cara upload nya kabarin yaa
