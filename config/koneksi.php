@@ -5,7 +5,7 @@ $host = "localhost";
 $port = "5432";
 $dbname = "projek_coba";
 $user = "postgres";
-$password = "admin"; // <-- Cek passwordmu
+$password = "jasuke412"; // <-- Cek passwordmu
 
 $conn = pg_connect("host=$host port=$port dbname=$dbname user=$user password=$password");
 
