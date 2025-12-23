@@ -1,5 +1,5 @@
 <?php
-include 'koneksi.php';
+include '../config/koneksi.php';
 
 $error = '';
 if (isset($_POST['login'])) {
@@ -17,7 +17,7 @@ if (isset($_POST['login'])) {
         $_SESSION['user_id'] = $user['id_user'];
         $_SESSION['username'] = $user['username'];
         
-        header("Location: index.php"); // Arahkan ke dashboard
+       header("Location: ../index.php");// Arahkan ke dashboard
         exit();
     } else {
         $error = "Username atau Password salah! Coba lagi.";

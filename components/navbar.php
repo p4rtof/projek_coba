@@ -3,7 +3,7 @@
         <a class="navbar-brand fw-bold fs-4" href="index.php"><i class="bi bi-printer-fill me-2"></i> Zaddy Printing</a>
         <div class="navbar-nav ms-auto gap-3">
             
-            <a class="nav-link fw-semibold" href="index.php">Dashboard</a>
+            <a class="nav-link fw-semibold" href="../../index.php">Dashboard</a>
             
             <li class="nav-item dropdown">
                 <a class="nav-link fw-semibold dropdown-toggle" href="#" id="navbarDropdownLaporan" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -17,10 +17,10 @@
                 </ul>
             </li>
             
-            <a class="nav-link fw-semibold" href="pelanggan.php">Pelanggan</a>
-            <a class="nav-link fw-semibold" href="produk.php">Produk</a>
+            <a class="nav-link fw-semibold" href="../../modules/pelanggan/index.php">Pelanggan</a>
+            <a class="nav-link fw-semibold" href="../..modules/produk/index.php">Produk</a>
             
-            <a class="btn btn-danger btn-sm my-auto fw-bold" href="logout.php">
+            <a class="btn btn-danger btn-sm my-auto fw-bold" href="../../auth/logout.php">
                 <i class="bi bi-box-arrow-right me-1"></i> Logout
             </a>
             

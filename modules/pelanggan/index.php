@@ -1,6 +1,7 @@
 <?php
-include 'koneksi.php';
-include 'auth.php'; // Tambahkan proteksi
+include '../../config/koneksi.php';
+include '../../auth/auth.php';
+ // Tambahkan proteksi
 
 // --- LOGIC HAPUS (Tanpa Alert, Langsung Refresh) ---
 if (isset($_GET['hapus'])) {
@@ -81,7 +82,7 @@ if (isset($_GET['edit'])) {
 
 <body class="bg-light">
 
-    <?php include 'navbar.php'; ?>
+    <?php include '../../components/navbar.php'; ?>
 
     <div class="container">
         <div class="row">
