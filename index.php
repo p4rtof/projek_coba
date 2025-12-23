@@ -35,7 +35,7 @@ if (isset($_GET['hapus'])) {
 }
 
 // --- LOGIC PAGINATION & FILTER ---
-$limit = 10; // Jumlah data per halaman
+$limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
@@ -54,7 +54,7 @@ if (!empty($tanggal)) {
 
 $where_sql = count($conditions) > 0 ? "WHERE " . implode(" AND ", $conditions) : "";
 
-// 1. Hitung Total Data (Untuk Pagination)
+// Hitung Total Data
 $query_count = "SELECT COUNT(*) AS total 
                 FROM transaksi t 
                 JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
@@ -63,7 +63,7 @@ $query_count = "SELECT COUNT(*) AS total
 $total_data = pg_fetch_assoc(pg_query($conn, $query_count))['total'];
 $total_pages = ceil($total_data / $limit);
 
-// 2. Query Data dengan LIMIT & OFFSET
+// Query Data
 $query_main = "SELECT t.*, p.nama AS p_nama, pr.nama_produk 
                FROM transaksi t 
                JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
@@ -139,23 +139,40 @@ $q_transaksi = pg_query($conn, $query_main);
         }
         .table-custom tbody tr:hover { background-color: #f8fafc; }
 
-        /* Badges */
-        .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
+        /* --- UPDATE: Badge Status & Progress (Hover Effect) --- */
+        .badge-status { 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            letter-spacing: 0.5px;
+            /* Transisi Halus */
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Bayangan tipis awal */
+            cursor: pointer; /* Biar kursor jadi tangan */
+        }
+        
+        /* Efek Timbul saat Hover */
+        .badge-status:hover {
+            transform: translateY(-2px); /* Naik sedikit */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* Bayangan menebal */
+        }
+        /* ---------------------------------------------------- */
+
         .bg-soft-success { background: #dcfce7; color: #166534; }
         .bg-soft-danger { background: #fee2e2; color: #991b1b; }
         .bg-soft-warning { background: #fef3c7; color: #92400e; }
         .bg-soft-info { background: #e0f2fe; color: #075985; }
 
-        /* --- NEW BUTTON ICON STYLES (COLORED BACKGROUNDS) --- */
+        /* Button Actions (Colored) */
         .btn-icon {
             width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
             border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none;
-            color: white !important; /* Paksa teks putih */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
 
-        /* Warna Hijau (Lunas) */
+/* Warna Hijau (Lunas) */
         .btn-green { background-color: #11cf579f; } 
         .btn-green:hover { background-color: #1db956ff; }
 
@@ -172,8 +189,7 @@ $q_transaksi = pg_query($conn, $query_main);
         .btn-red:hover { background-color: #dc2626; }
         /* -------------------------------------------------- */
 
-
-        /* Pagination Style */
+        /* Pagination */
         .page-link { border: none; color: var(--secondary); font-weight: 600; margin: 0 2px; border-radius: 8px; }
         .page-item.active .page-link { background-color: var(--primary); color: white; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3); }
         .page-link:hover { background-color: var(--light); color: var(--primary); }
@@ -234,8 +250,8 @@ $q_transaksi = pg_query($conn, $query_main);
                     <h5 class="fw-bold m-0">Riwayat Transaksi</h5>
                 </div>
 
-                <div class="d-flex gap-2 w-80 w-md-auto justify-content-end align-items-center">
-                    <form method="GET" class="d-flex gap-2 w-90 w-md-auto">
+                <div class="d-flex gap-2 w-100 w-md-auto justify-content-end align-items-center">
+                    <form method="GET" class="d-flex gap-2 w-100 w-md-auto">
                         <div class="position-relative">
                             <input type="date" name="tgl" class="form-control form-control-modern" 
                                    style="width: auto;" 
@@ -373,15 +389,12 @@ $q_transaksi = pg_query($conn, $query_main);
                         <?php 
                         $start = max(1, $page - 2);
                         $end = min($total_pages, $page + 2);
-                        
                         if($start > 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                        
                         for ($i = $start; $i <= $end; $i++): ?>
                             <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
                                 <a class="page-link" href="?page=<?= $i ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><?= $i ?></a>
                             </li>
                         <?php endfor; 
-                        
                         if($end < $total_pages) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
                         ?>
 
