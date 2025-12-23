@@ -250,7 +250,7 @@ $q_transaksi = pg_query($conn, $query_main);
                     <h5 class="fw-bold m-0">Riwayat Transaksi</h5>
                 </div>
 
-                <div class="d-flex gap-2 w-100 w-md-auto justify-content-end align-items-center">
+                <div class="d-flex gap-2 w-95 w-md-auto justify-content-end align-items-center">
                     <form method="GET" class="d-flex gap-2 w-100 w-md-auto">
                         <div class="position-relative">
                             <input type="date" name="tgl" class="form-control form-control-modern" 
