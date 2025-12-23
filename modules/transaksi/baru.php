@@ -29,9 +29,9 @@ if (isset($_POST['simpan'])) {
     $status_order = 'Proses';
     
     // --- LOGIC TANGGAL MANUAL & JAM OTOMATIS ---
-    $tgl_input    = $_POST['tgl_input']; // Ambil tanggal dari input user
-    $jam_sekarang = date('H:i:s');       // Ambil jam sekarang otomatis
-    $waktu_fix    = $tgl_input . ' ' . $jam_sekarang; // Gabungkan
+    $tgl_input    = $_POST['tgl_input']; 
+    $jam_sekarang = date('H:i:s');       
+    $waktu_fix    = $tgl_input . ' ' . $jam_sekarang; 
     
     // DATA PEMBAYARAN BARU
     $metode       = $_POST['metode_pembayaran'];
@@ -56,16 +56,14 @@ if (isset($_POST['simpan'])) {
     $total_bayar = $harga_satuan_fix * $jumlah;
 
     if ($stok_now < $jumlah) {
-        $error_message = "<div class='alert alert-danger fw-bold'>❌ Gagal! Stok Produk Sisa: {$stok_now}, Anda meminta: {$jumlah}</div>";
+        $error_message = "<div class='alert alert-danger fw-bold shadow-sm border-0 py-2'><i class='bi bi-exclamation-triangle-fill me-2'></i> Gagal! Stok Sisa: {$stok_now}, Diminta: {$jumlah}</div>";
     } else {
         $id_transaksi_baru = generateNewId($conn, 'transaksi', 'T', 'id_transaksi');
         
-        // QUERY INSERT UPDATE: Pakai $waktu_fix bukan CURRENT_TIMESTAMP
         $query = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, status_pembayaran, status_order, panjang, lebar, metode_pembayaran, id_bank) 
                   VALUES ('$id_transaksi_baru', '$pelanggan_id', '$produk_id', '$waktu_fix', '$jumlah', '$total_bayar', '$status_bayar', '$status_order', '$panjang', '$lebar', '$metode', $id_bank)";
         
         if (pg_query($conn, $query)) {
-            // Kurangi Stok
             $stok_baru = $stok_now - $jumlah;
             pg_query($conn, "UPDATE produk SET stok_bahan = $stok_baru WHERE id_produk = '$produk_id'");
             header("Location: ../../index.php"); 
@@ -82,138 +80,286 @@ if (isset($_POST['simpan'])) {
     <title>Order Baru</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
-        body { background: #f0f2f5; font-family: sans-serif; }
-        #area_ukuran, #area_bank { transition: all 0.3s ease-in-out; }
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary: #64748b;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); font-size: 0.9rem; }
+        
+        /* Layout Modern & Compact */
+        .card-modern {
+            background: white; border: 1px solid white; border-radius: 12px;
+            box-shadow: var(--card-shadow); transition: all 0.2s;
+            overflow: hidden;
+        }
+        .form-label { font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.2rem; }
+        
+        .form-control-modern, .form-select-modern {
+            border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
+            font-size: 0.9rem; background-color: var(--light); transition: all 0.2s;
+        }
+        .form-control-modern:focus, .form-select-modern:focus { 
+            background-color: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); 
+        }
+
+        .btn-modern {
+            background: var(--primary); color: white; border: none; padding: 10px;
+            border-radius: 8px; font-weight: 700; width: 100%; transition: all 0.2s;
+            box-shadow: 0 2px 4px -1px rgba(79, 70, 229, 0.2);
+            letter-spacing: 0.5px; font-size: 0.95rem;
+        }
+        .btn-modern:hover { background: var(--primary-hover); transform: translateY(-1px); color: white; }
+
+        .header-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white; padding: 15px 20px;
+        }
+
+        /* --- STYLE RADIO BUTTON: HORIZONTAL & COMPACT (Solusi Hemat Ruang) --- */
+        .radio-card-input { display: none; }
+        
+        .radio-card-label {
+            display: flex;             /* Mode Fleksibel */
+            flex-direction: row;       /* BERJEJER KE SAMPING (Kiri-Kanan) */
+            align-items: center;       /* Rata Tengah Vertikal */
+            justify-content: flex-start; /* Rata Kiri */
+            
+            cursor: pointer; border: 1px solid var(--border);
+            border-radius: 10px; 
+            padding: 10px 15px;        /* Padding pas, gak sempit gak lebar */
+            background: white; transition: all 0.2s ease;
+            height: 100%;              /* Tinggi seragam */
+            text-align: left;          /* Teks Rata Kiri */
+        }
+        
+        .radio-card-label:hover { border-color: #cbd5e1; background: #f8fafc; transform: translateY(-1px); }
+        
+        /* Warna saat dipilih */
+        .radio-card-input:checked + .radio-card-label.label-lunas {
+            border-color: #10b981; background-color: #ecfdf5; color: #059669;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+        }
+        .radio-card-input:checked + .radio-card-label.label-hutang {
+            border-color: #f59e0b; background-color: #fffbeb; color: #d97706;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
+        }
+        .radio-card-input:checked + .radio-card-label.label-bank {
+            border-color: var(--primary); background-color: #eef2ff; color: var(--primary);
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
+        }
+        
+        /* Ikon di sebelah Kiri */
+        .radio-icon { 
+            font-size: 1.8rem;      /* Ukuran Ikon Pas */
+            margin-right: 15px;     /* Jarak Ikon ke Teks */
+            margin-bottom: 0;       /* Hapus margin bawah */
+            line-height: 1;
+        }
+        
     </style>
 </head>
 <body>
-    <div class="container py-5">
+
+    <div class="container py-3">
         <div class="row justify-content-center">
-            <div class="col-md-7">
-                <a href="../../index.php" class="text-decoration-none text-muted mb-3 d-inline-block fw-bold"><i class="bi bi-arrow-left"></i> Kembali</a>
-                <div class="card shadow-lg border-0 rounded-4">
-                    <div class="card-header bg-primary text-white py-3 rounded-top-4">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-cart-plus me-2"></i>Buat Transaksi Baru</h5>
+            <div class="col-lg-7"> 
+                
+                <div class="d-flex align-items-center mb-3">
+                    <a href="../../index.php" class="btn btn-light rounded-circle shadow-sm me-3 border" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-arrow-left text-dark fs-6"></i>
+                    </a>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Buat Transaksi</h5>
                     </div>
-                    <div class="card-body p-4">
-                        <?= $error_message ?> 
+                </div>
+
+                <?= $error_message ?> 
+
+                <div class="card-modern">
+                    <div class="header-gradient">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold fs-5"><i class="bi bi-cart-plus me-2"></i>Form Order</span>
+                            <span class="badge bg-white bg-opacity-25 border border-white border-opacity-25"><?= date('d M Y') ?></span>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-3 p-lg-4">
                         <form method="POST">
                             
-                            <div class="mb-3">
-                                <label class="fw-bold small text-muted">Tanggal Order</label>
-                                <input type="date" name="tgl_input" class="form-control fw-bold text-primary" 
-                                       value="<?= date('Y-m-d') ?>" required> <div class="form-text small">Jam akan otomatis terisi saat ini.</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-5">
+                                    <label class="form-label">Tanggal Order</label>
+                                    <input type="date" name="tgl_input" class="form-control form-control-modern" 
+                                           value="<?= date('Y-m-d') ?>" required>
+                                </div>
+                                <div class="col-md-7">
+                                    <label class="form-label">Pilih Pelanggan</label>
+                                    <div class="input-group">
+                                        <select name="pelanggan_id" class="form-select form-select-modern" required>
+                                            <option value="">-- Cari Pelanggan --</option>
+                                            <?php
+                                            $q = pg_query($conn, "SELECT id_pelanggan, nama FROM pelanggan ORDER BY nama ASC");
+                                            while ($p = pg_fetch_assoc($q)) {
+                                                $sel = ($p['id_pelanggan'] == $form_pelanggan_id) ? 'selected' : '';
+                                                if (isset($_GET['id_pelanggan']) && $_GET['id_pelanggan'] == $p['id_pelanggan']) $sel = 'selected';
+                                                echo "<option value='{$p['id_pelanggan']}' $sel>{$p['nama']}</option>";
+                                            }
+                                            ?>
+                                        </select>
+                                        <a href="../pelanggan/index.php" class="btn btn-light border btn-sm pt-2" title="Tambah Pelanggan Baru"><i class="bi bi-plus-lg"></i></a>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="fw-bold small text-muted">Pelanggan</label>
-                                <select name="pelanggan_id" class="form-select" required>
-                                    <option value="">-- Pilih Pelanggan --</option>
-                                    <?php
-                                    $q = pg_query($conn, "SELECT id_pelanggan, nama FROM pelanggan ORDER BY nama ASC");
-                                    while ($p = pg_fetch_assoc($q)) {
-                                        $sel = ($p['id_pelanggan'] == $form_pelanggan_id) ? 'selected' : '';
-                                        if (isset($_GET['id_pelanggan']) && $_GET['id_pelanggan'] == $p['id_pelanggan']) $sel = 'selected';
-                                        echo "<option value='{$p['id_pelanggan']}' $sel>{$p['nama']}</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="fw-bold small text-muted">Produk</label>
-                                <select name="produk_id" id="produk" class="form-select" onchange="cekJenisProduk()" required>
+                                <label class="form-label">Produk / Layanan</label>
+                                <select name="produk_id" id="produk" class="form-select form-select-modern" onchange="cekJenisProduk()" required>
                                     <option value="" data-harga="0" data-jenis="Pcs" data-stok="0">-- Pilih Produk --</option>
                                     <?php
                                     $q = pg_query($conn, "SELECT id_produk, nama_produk, harga, stok_bahan, jenis_satuan FROM produk ORDER BY nama_produk ASC");
                                     while ($pr = pg_fetch_assoc($q)) {
                                         $sel = ($pr['id_produk'] == $form_produk_id) ? 'selected' : '';
-                                        // UPDATE: Menambahkan info Sisa Stok di label dan atribut data-stok
                                         echo "<option value='{$pr['id_produk']}' 
                                                 data-harga='{$pr['harga']}' 
                                                 data-jenis='{$pr['jenis_satuan']}' 
                                                 data-stok='{$pr['stok_bahan']}'
                                                 $sel>
-                                                {$pr['nama_produk']} (Sisa: {$pr['stok_bahan']})
+                                                {$pr['nama_produk']} (Stok: {$pr['stok_bahan']})
                                               </option>";
                                     }
                                     ?>
                                 </select>
-                                <div id="info_stok" class="form-text fw-bold mt-1"></div>
+                                <div id="info_stok" class="mt-1" style="font-size: 0.8rem;"></div>
                             </div>
 
-                            <div id="area_ukuran" class="row bg-warning bg-opacity-10 p-2 rounded mb-3 border border-warning" style="display:none;">
-                                <div class="col-12 mb-2"><small class="text-warning fw-bold"><i class="bi bi-rulers"></i> Masukkan Ukuran (Meter)</small></div>
-                                <div class="col-6">
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text">P</span>
-                                        <input type="number" step="0.01" name="panjang" id="panjang" class="form-control fw-bold" placeholder="0" value="<?= $form_p ?>" oninput="hitung()">
-                                        <span class="input-group-text">m</span>
+                            <div id="area_ukuran" class="bg-warning bg-opacity-10 p-2 rounded-3 mb-3 border border-warning border-opacity-25" style="display:none;">
+                                <div class="mb-1 text-warning fw-bold small"><i class="bi bi-rulers me-1"></i> Ukuran Custom (Meter)</div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white border-end-0 text-secondary">P</span>
+                                            <input type="number" step="0.01" name="panjang" id="panjang" class="form-control form-control-modern border-start-0 ps-1" placeholder="0" value="<?= $form_p ?>" oninput="hitung()">
+                                            <span class="input-group-text bg-transparent border-0 text-secondary small">m</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text">L</span>
-                                        <input type="number" step="0.01" name="lebar" id="lebar" class="form-control fw-bold" placeholder="0" value="<?= $form_l ?>" oninput="hitung()">
-                                        <span class="input-group-text">m</span>
+                                    <div class="col-6">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white border-end-0 text-secondary">L</span>
+                                            <input type="number" step="0.01" name="lebar" id="lebar" class="form-control form-control-modern border-start-0 ps-1" placeholder="0" value="<?= $form_l ?>" oninput="hitung()">
+                                            <span class="input-group-text bg-transparent border-0 text-secondary small">m</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="row mb-3 mt-3">
+                            <div class="row g-3 mb-3 align-items-end">
                                 <div class="col-4">
-                                    <label class="fw-bold small text-muted">Qty</label>
-                                    <input type="number" name="jumlah" id="qty" class="form-control text-center fw-bold" value="<?= $form_jumlah ?>" oninput="hitung()" required min="1"> 
+                                    <label class="form-label">Jumlah (Qty)</label>
+                                    <input type="number" name="jumlah" id="qty" class="form-control form-control-modern text-center fw-bold" value="<?= $form_jumlah ?>" oninput="hitung()" required min="1"> 
                                 </div>
                                 <div class="col-8">
-                                    <label class="fw-bold small text-muted">Total Bayar</label>
+                                    <label class="form-label text-success">Total Estimasi</label>
                                     <div class="input-group">
-                                        <span class="input-group-text bg-success text-white fw-bold">Rp</span>
-                                        <input type="text" id="total_tampil" class="form-control bg-success bg-opacity-10 fw-bold text-success" readonly value="0">
+                                        <span class="input-group-text bg-success text-white fw-bold border-0 px-3" style="font-size: 0.9rem;">Rp</span>
+                                        <input type="text" id="total_tampil" class="form-control form-control-modern bg-success bg-opacity-10 text-success fw-bold border-success border-opacity-25" readonly value="0">
                                     </div>
-                                    <small id="info_rumus" class="text-muted fst-italic" style="font-size: 0.75rem;"></small>
                                 </div>
                             </div>
 
-                            <hr>
+                            <hr class="my-3 border-light">
 
                             <div class="mb-3">
-                                <label class="fw-bold small text-muted d-block">Metode Pembayaran</label>
-                                <div class="btn-group w-100 mb-2" role="group">
-                                    <input type="radio" class="btn-check" name="metode_pembayaran" id="metode1" value="Cash" onclick="cekMetode()" <?= ($form_metode == 'Cash') ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-secondary fw-bold" for="metode1"><i class="bi bi-cash"></i> Tunai (Cash)</label>
-
-                                    <input type="radio" class="btn-check" name="metode_pembayaran" id="metode2" value="Transfer" onclick="cekMetode()" <?= ($form_metode == 'Transfer') ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-primary fw-bold" for="metode2"><i class="bi bi-bank"></i> Transfer</label>
+                                <label class="form-label d-block mb-2">Metode Pembayaran</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="radio" class="radio-card-input" name="metode_pembayaran" id="metode1" value="Cash" onclick="cekMetode()" <?= ($form_metode == 'Cash') ? 'checked' : '' ?>>
+                                        <label class="radio-card-label label-bank" for="metode1">
+                                            <i class="bi bi-cash-coin radio-icon"></i> 
+                                            <div class="fw-bold small">Tunai</div>
+                                        </label>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="radio" class="radio-card-input" name="metode_pembayaran" id="metode2" value="Transfer" onclick="cekMetode()" <?= ($form_metode == 'Transfer') ? 'checked' : '' ?>>
+                                        <label class="radio-card-label label-bank" for="metode2">
+                                            <i class="bi bi-bank radio-icon"></i> 
+                                            <div class="fw-bold small">Transfer</div>
+                                        </label>
+                                    </div>
                                 </div>
 
-                                <div id="area_bank" style="display: none;">
-                                    <select name="bank_id" id="bank_id" class="form-select border-primary bg-primary bg-opacity-10 text-primary fw-bold">
-                                        <option value="">-- Pilih Bank Tujuan Transfer --</option>
-                                        <?php
-                                        $q_bank = pg_query($conn, "SELECT * FROM bank_akun");
-                                        while ($b = pg_fetch_assoc($q_bank)) {
-                                            $sel = ($b['id_bank'] == $form_bank) ? 'selected' : '';
-                                            echo "<option value='{$b['id_bank']}' $sel>{$b['nama_bank']} - {$b['no_rekening']} (a.n {$b['atas_nama']})</option>";
-                                        }
-                                        ?>
-                                    </select>
+                                <div id="area_bank" class="mt-3" style="display: none;">
+                                    <div class="p-3 bg-light rounded-3 border">
+                                        <label class="form-label small mb-2 text-secondary">Pilih Rekening Tujuan:</label>
+                                        <div class="row g-2">
+                                            <?php
+                                            $q_bank = pg_query($conn, "SELECT * FROM bank_akun");
+                                            while ($b = pg_fetch_assoc($q_bank)) {
+                                                $cek = ($b['id_bank'] == $form_bank) ? 'checked' : '';
+                                                ?>
+                                                <div class="col-md-6">
+                                                    <input type="radio" class="radio-card-input" name="bank_id" id="bank_<?= $b['id_bank'] ?>" value="<?= $b['id_bank'] ?>" <?= $cek ?>>
+                                                    
+                                                    <label class="radio-card-label label-bank" for="bank_<?= $b['id_bank'] ?>">
+                                                        <div class="text-primary me-3">
+                                                            <i class="bi bi-credit-card-2-front fs-2"></i>
+                                                        </div>
+                                                        
+                                                        <div style="line-height: 1.2;">
+                                                            <div class="fw-bold text-dark text-truncate" style="font-size: 0.9rem;"><?= $b['nama_bank'] ?></div>
+                                                            <div class="text-secondary fw-medium" style="font-size: 0.8rem;"><?= $b['no_rekening'] ?></div>
+                                                            <div class="text-muted small" style="font-size: 0.7rem;">a.n <?= $b['atas_nama'] ?></div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                                <?php 
+                                            } 
+                                            ?>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="mb-4">
-                                <label class="fw-bold small text-muted d-block">Status Pembayaran</label>
-                                <div class="btn-group w-100" role="group">
-                                    <input type="radio" class="btn-check" name="status_pembayaran" id="bayar1" value="Lunas" <?= ($form_status_bayar == 'Lunas') ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-success fw-bold" for="bayar1">LUNAS</label>
-
-                                    <input type="radio" class="btn-check" name="status_pembayaran" id="bayar2" value="Belum Lunas" <?= ($form_status_bayar != 'Lunas') ? 'checked' : '' ?>>
-                                    <label class="btn btn-outline-warning fw-bold" for="bayar2">BELUM LUNAS</label>
+                                <label class="form-label mb-2">Status Pembayaran</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="radio" class="radio-card-input" name="status_pembayaran" id="status_lunas" value="Lunas" <?= ($form_status_bayar == 'Lunas') ? 'checked' : '' ?>>
+                                        <label class="radio-card-label label-lunas" for="status_lunas">
+                                            <i class="bi bi-check-circle-fill radio-icon"></i>
+                                            <div>
+                                                <div class="fw-bold small">LUNAS</div>
+                                                <div class="small opacity-75" style="font-size: 0.7rem;">Sudah Bayar</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="radio" class="radio-card-input" name="status_pembayaran" id="status_hutang" value="Belum Lunas" <?= ($form_status_bayar != 'Lunas') ? 'checked' : '' ?>>
+                                        <label class="radio-card-label label-hutang" for="status_hutang">
+                                            <i class="bi bi-hourglass-split radio-icon"></i>
+                                            <div>
+                                                <div class="fw-bold small">BELUM</div>
+                                                <div class="small opacity-75" style="font-size: 0.7rem;">Catat Utang</div>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
-                            <button type="submit" name="simpan" id="btn_simpan" class="btn btn-primary w-100 fw-bold py-2">SIMPAN ORDER</button>
+                            <button type="submit" name="simpan" id="btn_simpan" class="btn-modern py-2">
+                                <i class="bi bi-check-circle-fill me-2"></i> SIMPAN ORDER
+                            </button>
+                            <div class="text-center mt-2">
+                                <a href="../../index.php" class="text-secondary small text-decoration-none">Batal</a>
+                            </div>
+
                         </form>
                     </div>
                 </div>
@@ -226,44 +372,41 @@ if (isset($_POST['simpan'])) {
             let select = document.getElementById('produk');
             let option = select.options[select.selectedIndex];
             let jenis = option.getAttribute('data-jenis');
-            let stok = parseInt(option.getAttribute('data-stok')) || 0; // Ambil Stok
+            let stok = parseInt(option.getAttribute('data-stok')) || 0;
             
             let areaUkuran = document.getElementById('area_ukuran');
-            let info = document.getElementById('info_rumus');
             let infoStok = document.getElementById('info_stok');
             
-            // Tampilkan Stok di bawah dropdown
             if(option.value !== "") {
-                infoStok.innerHTML = `Stok Tersedia: <span class='text-primary'>${stok}</span>`;
+                infoStok.innerHTML = `<span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded-pill"><i class="bi bi-box-seam me-1"></i> Stok: ${stok}</span>`;
             } else {
                 infoStok.innerHTML = "";
             }
 
             if (jenis === 'Meter') {
-                areaUkuran.style.display = 'flex';
+                areaUkuran.style.display = 'block';
                 if(document.getElementById('panjang').value == '') document.getElementById('panjang').value = 1;
                 if(document.getElementById('lebar').value == '') document.getElementById('lebar').value = 1;
-                info.innerText = "Rumus: (Panjang x Lebar x Harga) x Qty";
             } else {
                 areaUkuran.style.display = 'none';
-                info.innerText = "Rumus: Harga x Qty";
             }
             hitung();
         }
 
-        // FUNGSI TOGGLE BANK
         function cekMetode() {
             let metode = document.querySelector('input[name="metode_pembayaran"]:checked').value;
             let areaBank = document.getElementById('area_bank');
-            let selectBank = document.getElementById('bank_id');
+            let bankRadios = document.querySelectorAll('input[name="bank_id"]');
 
             if (metode === 'Transfer') {
                 areaBank.style.display = 'block';
-                selectBank.setAttribute('required', 'required'); // Wajib pilih jika transfer
+                bankRadios.forEach(radio => radio.setAttribute('required', 'required'));
             } else {
                 areaBank.style.display = 'none';
-                selectBank.removeAttribute('required');
-                selectBank.value = ""; // Reset pilihan
+                bankRadios.forEach(radio => {
+                    radio.removeAttribute('required');
+                    radio.checked = false;
+                });
             }
         }
 
@@ -273,27 +416,22 @@ if (isset($_POST['simpan'])) {
             
             let harga = parseFloat(option.getAttribute('data-harga')) || 0;
             let jenis = option.getAttribute('data-jenis');
-            let stok  = parseInt(option.getAttribute('data-stok')) || 0; // Stok Real
+            let stok  = parseInt(option.getAttribute('data-stok')) || 0;
             
             let qtyInput = document.getElementById('qty');
             let qty = parseFloat(qtyInput.value) || 0;
-            
-            // --- VALIDASI STOK REALTIME ---
-            let infoStok = document.getElementById('info_stok');
             let btnSimpan = document.getElementById('btn_simpan');
+            let infoStok = document.getElementById('info_stok');
 
-            if (qty > stok) {
-                // Jika input qty lebih besar dari stok
-                infoStok.innerHTML = `<span class='text-danger fw-bold'><i class="bi bi-exclamation-circle-fill"></i> Stok tidak cukup! Maksimal: ${stok}</span>`;
-                qtyInput.classList.add('is-invalid'); // Merahkan input
-                btnSimpan.classList.add('disabled'); // Matikan tombol simpan
+            if (qty > stok && option.value !== "") {
+                infoStok.innerHTML = `<span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 rounded-pill"><i class="bi bi-x-circle me-1"></i> Stok Kurang! (Max: ${stok})</span>`;
+                qtyInput.classList.add('is-invalid');
+                btnSimpan.classList.add('disabled');
             } else if (option.value !== "") {
-                // Jika aman
-                infoStok.innerHTML = `Stok Tersedia: <span class='text-primary'>${stok}</span>`;
+                infoStok.innerHTML = `<span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded-pill"><i class="bi bi-box-seam me-1"></i> Stok: ${stok}</span>`;
                 qtyInput.classList.remove('is-invalid');
                 btnSimpan.classList.remove('disabled');
             }
-            // -------------------------------
 
             let total = 0;
             if (jenis === 'Meter') {
@@ -308,7 +446,9 @@ if (isset($_POST['simpan'])) {
 
         document.addEventListener('DOMContentLoaded', () => {
             cekJenisProduk();
-            cekMetode(); 
+            if(document.querySelector('input[name="metode_pembayaran"]:checked')) {
+                cekMetode();
+            }
         });
     </script>
 </body>
