@@ -21,7 +21,7 @@ $q = pg_query($conn, "SELECT t.*, p.nama, pr.nama_produk FROM transaksi t JOIN p
         <h4 class="fw-bold mb-3"><?= $judul ?></h4>
         <div class="mb-3">
             <a href="order.php?tampil=proses" class="btn btn-sm btn-outline-primary">Proses</a>
-            <a href="order.php?tampil=utang" class="btn btn-sm btn-outline-warning">Utang</a>
+            <a href="order.php?tampil=utang" class="btn btn-sm btn-outline-warning">Belum Lunas</a>
         </div>
         <div class="card shadow-sm border-0">
             <div class="table-responsive">
