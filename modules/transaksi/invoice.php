@@ -1,9 +1,11 @@
 <?php
-include 'koneksi.php';
-include 'auth.php';
+include '../../config/koneksi.php';
+include '../../auth/auth.php';
 
 if (!isset($_GET['id'])) {
-    header("Location: index.php"); exit();
+    // Arahkan kembali ke dashboard jika tidak ada ID
+    header("Location: ../../index.php"); 
+    exit();
 }
 
 $id = $_GET['id'];
@@ -54,21 +56,9 @@ if (!$data) {
         
         /* --- CSS KHUSUS PRINT --- */
         @media print {
-            /* MENGHILANGKAN HEADER/FOOTER BROWSER (Tanggal, URL, Judul) */
-            @page {
-                margin: 0; /* Reset margin halaman jadi 0 */
-                size: auto;
-            }
-            
-            body { 
-                background: white; 
-                margin: 1.5cm; /* Tambahkan margin manual agar konten tidak mepet kertas */
-            }
-            
-            /* Sembunyikan elemen navigasi */
+            @page { margin: 0; size: auto; }
+            body { background: white; margin: 1.5cm; }
             .no-print { display: none !important; }
-            
-            /* Reset style box agar pas di kertas */
             .invoice-box { box-shadow: none; border: none; padding: 0; width: 100%; }
             .container { max-width: 100%; padding: 0; }
         }
@@ -81,7 +71,7 @@ if (!$data) {
         <div class="col-lg-9">
 
             <div class="text-end mb-3 no-print gap-2 d-flex justify-content-end">
-                <a href="index.php" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+                <a href="../../index.php" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
                 <button onclick="window.print()" class="btn btn-sm btn-primary rounded-pill px-3"><i class="bi bi-printer-fill me-1"></i>Cetak</button>
             </div>
 

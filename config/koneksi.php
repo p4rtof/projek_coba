@@ -1,19 +1,15 @@
 <?php
-// TAMBAHKAN INI DI BARIS PERTAMA
-session_start();
+session_start(); // Wajib di baris pertama
 
 $host = "localhost";
 $port = "5432";
 $dbname = "projek_coba";
 $user = "postgres";
-$password = "admin"; // Sesuaikan passwordmu
+$password = "admin"; // <-- Cek passwordmu
 
 $conn = pg_connect("host=$host port=$port dbname=$dbname user=$user password=$password");
 
 if (!$conn) {
-    echo "Waduh, koneksi gagal nih.";
-} 
-// else {
-//     echo "Koneksi berhasil, yuk lanjut!";
-// }
+    die("Koneksi Gagal: " . pg_last_error());
+}
 ?>
