@@ -2,9 +2,7 @@
 include 'config/koneksi.php';
 include 'auth/auth.php';
 
-// --- LOGIC PHP UTAMA ---
-
-// 1. Widget Statistik (Omset, Order, Utang)
+// --- LOGIC WIDGET DASHBOARD ---
 $q_omset = pg_fetch_assoc(pg_query($conn, "SELECT SUM(total_harga) AS total FROM transaksi WHERE waktu_order::date = CURRENT_DATE AND status_pembayaran = 'Lunas'"));
 $omset_hari_ini = $q_omset['total'] ?? 0;
 
@@ -14,12 +12,14 @@ $jumlah_order = $q_order['total'] ?? 0;
 $q_utang = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE status_pembayaran = 'Belum Lunas'"));
 $jumlah_utang = $q_utang['total'] ?? 0;
 
-// 2. Logic Aksi Cepat (Lunasi, Update Status, Hapus)
+// --- LOGIC: TANDAI LUNAS ---
 if (isset($_GET['lunasi'])) {
     $id = $_GET['id'];
     pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id'");
     header("Location: index.php"); exit();
 }
+
+// --- LOGIC: UPDATE STATUS ---
 if (isset($_GET['naik_status'])) {
     $id = $_GET['id'];
     $st = $_GET['status'];
@@ -27,6 +27,8 @@ if (isset($_GET['naik_status'])) {
     if ($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id_transaksi = '$id'"); 
     header("Location: index.php"); exit();
 }
+
+// --- LOGIC: HAPUS ---
 if (isset($_GET['hapus'])) {
     pg_query($conn, "DELETE FROM transaksi WHERE id_transaksi = '{$_GET['hapus']}'");
     header("Location: index.php"); exit();
@@ -85,13 +87,22 @@ if (isset($_GET['hapus'])) {
         }
         .btn-modern:hover { background: var(--primary-hover); transform: translateY(-2px); color: white; }
 
-        /* Table */
-        .table-custom { margin: 0; }
+        /* Table Rapi tapi Responsif */
+        .table-custom { margin: 0; } /* Hapus white-space: nowrap agar bisa turun baris */
+        
         .table-custom thead th {
             background: #f8fafc; color: var(--secondary); font-size: 0.75rem; font-weight: 700;
             text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 24px; border-bottom: 1px solid var(--border);
         }
-        .table-custom tbody td { padding: 16px 24px; vertical-align: middle; font-size: 0.95rem; border-bottom: 1px solid var(--border); color: var(--dark); }
+        
+        .table-custom tbody td { 
+            padding: 16px 24px; 
+            vertical-align: middle; 
+            font-size: 0.95rem; 
+            border-bottom: 1px solid var(--border); 
+            color: var(--dark);
+        }
+        
         .table-custom tbody tr:hover { background-color: #f8fafc; }
 
         /* Badges & Actions */
@@ -166,16 +177,15 @@ if (isset($_GET['hapus'])) {
                     <h5 class="fw-bold m-0">Riwayat Transaksi</h5>
                 </div>
 
-                <div class="d-flex gap-2 w-90 w-md-auto justify-content-end align-items-center">
-                    
+                <div class="d-flex gap-2 w-80 w-md-auto justify-content-end align-items-center">
                     <form method="GET" class="d-flex gap-2 w-90 w-md-auto">
-                        
                         <div class="position-relative">
                             <input type="date" name="tgl" class="form-control form-control-modern" 
                                    style="width: auto; padding-right: 10px;" 
                                    value="<?= $_GET['tgl'] ?? '' ?>" 
                                    title="Filter Tanggal"
-                                   onchange="this.form.submit()"> </div>
+                                   onchange="this.form.submit()"> 
+                        </div>
 
                         <div class="position-relative flex-grow-1">
                             <input type="text" name="q" class="form-control form-control-modern" 
@@ -202,46 +212,41 @@ if (isset($_GET['hapus'])) {
                 <table class="table table-custom mb-0 text-center">
                     <thead>
                         <tr>
-                            <th class="ps-4 text-start">ID Transaksi</th>
+                            <th class="ps-4 text-start text-nowrap">ID & Tanggal</th>
                             <th class="text-start">Pelanggan</th>
                             <th class="text-start">Produk</th>
-                            <th>Qty</th>
-                            <th>Total</th>
-                            <th>Status Bayar</th>
-                            <th>Progress</th>
-                            <th class="text-end pe-4">Aksi</th>
+                            <th class="text-nowrap">Qty</th>
+                            <th class="text-nowrap">Total</th>
+                            <th class="text-nowrap">Status</th>
+                            <th class="text-nowrap">Progress</th>
+                            <th class="text-end pe-4 text-nowrap">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php
-                        // --- LOGIC FILTER PENCARIAN ---
+                        // Filter Logic
                         $keyword = $_GET['q'] ?? '';
-                        $tanggal = $_GET['tgl'] ?? ''; // Ambil tanggal dari URL
+                        $tanggal = $_GET['tgl'] ?? '';
                         $conditions = [];
 
-                        // 1. Filter Keyword (Nama/ID/Produk)
                         if (!empty($keyword)) {
                             $safe_key = pg_escape_string($conn, $keyword);
                             $conditions[] = "(t.id_transaksi ILIKE '%$safe_key%' OR p.nama ILIKE '%$safe_key%' OR pr.nama_produk ILIKE '%$safe_key%')";
                         }
-
-                        // 2. Filter Tanggal (Fitur Baru)
                         if (!empty($tanggal)) {
                             $safe_tgl = pg_escape_string($conn, $tanggal);
-                            // Mencocokkan kolom waktu_order dengan tanggal yang dipilih
                             $conditions[] = "DATE(t.waktu_order) = '$safe_tgl'";
                         }
 
-                        // Gabungkan kondisi SQL
                         $where_sql = count($conditions) > 0 ? "WHERE " . implode(" AND ", $conditions) : "";
 
-                        // Query Utama
+                        // Query dengan ORDER DESC (Data terbaru diatas)
                         $query = "SELECT t.*, p.nama AS p_nama, pr.nama_produk 
                                   FROM transaksi t 
                                   JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
                                   JOIN produk pr ON t.id_produk=pr.id_produk 
                                   $where_sql
-                                  ORDER BY t.waktu_order DESC LIMIT 50";
+                                  ORDER BY t.id_transaksi DESC LIMIT 50";
                         
                         $q = pg_query($conn, $query);
                         
@@ -249,18 +254,26 @@ if (isset($_GET['hapus'])) {
                             while ($r = pg_fetch_assoc($q)):
                         ?>
                         <tr>
-                            <td class="ps-4 text-start">
+                            <td class="ps-4 text-start text-nowrap">
                                 <div class="fw-bold text-primary"><?= $r['id_transaksi'] ?></div>
                                 <div class="small text-secondary" style="font-size: 0.75rem;">
                                     <?= date('d/m/y H:i', strtotime($r['waktu_order'])) ?>
                                 </div>
                             </td>
-                            <td class="text-start fw-semibold text-dark"><?= $r['p_nama'] ?></td>
-                            <td class="text-start text-secondary"><?= $r['nama_produk'] ?></td>
-                            <td><span class="badge bg-light text-dark border"><?= $r['jumlah'] ?></span></td>
-                            <td class="fw-bold text-dark">Rp <?= number_format($r['total_harga'], 0, ',', '.') ?></td>
                             
-                            <td>
+                            <td class="text-start fw-semibold text-dark" style="min-width: 150px; max-width: 200px;">
+                                <?= $r['p_nama'] ?>
+                            </td>
+                            
+                            <td class="text-start text-secondary" style="min-width: 150px; max-width: 250px;">
+                                <?= $r['nama_produk'] ?>
+                            </td>
+                            
+                            <td class="text-nowrap"><span class="badge bg-light text-dark border"><?= $r['jumlah'] ?></span></td>
+                            
+                            <td class="fw-bold text-dark text-nowrap">Rp <?= number_format($r['total_harga'], 0, ',', '.') ?></td>
+                            
+                            <td class="text-nowrap">
                                 <?php if($r['status_pembayaran'] == 'Lunas'): ?>
                                     <span class="badge badge-status bg-soft-success">Lunas</span>
                                 <?php else: ?>
@@ -268,7 +281,7 @@ if (isset($_GET['hapus'])) {
                                 <?php endif; ?>
                             </td>
                             
-                            <td>
+                            <td class="text-nowrap">
                                 <?php 
                                 $st = $r['status_order'];
                                 if($st == 'Done'): ?>
@@ -282,7 +295,7 @@ if (isset($_GET['hapus'])) {
                                 <?php endif; ?>
                             </td>
                             
-                            <td class="text-end pe-4">
+                            <td class="text-end pe-4 text-nowrap">
                                 <div class="d-flex justify-content-end gap-2">
                                     <?php if ($r['status_pembayaran'] == 'Belum Lunas'): ?>
                                         <a href="index.php?lunasi=true&id=<?= $r['id_transaksi'] ?>" 
@@ -303,8 +316,7 @@ if (isset($_GET['hapus'])) {
                             <tr>
                                 <td colspan="8" class="text-center py-5 text-secondary">
                                     <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
-                                    Tidak ada data transaksi ditemukan.<br>
-                                    <small>Coba ubah tanggal atau kata kunci pencarian.</small>
+                                    Tidak ada data transaksi.
                                 </td>
                             </tr>
                         <?php endif; ?>

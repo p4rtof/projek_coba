@@ -135,7 +135,7 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
         <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
                 <h3 class="fw-bold m-0" style="letter-spacing: -0.5px;">Data Produk</h3>
-                <p class="text-secondary m-0 small">Kelola inventaris barang dan harga.</p>
+                <!-- <p class="text-secondary m-0 small">Kelola inventaris barang dan harga.</p> -->
             </div>
             <div>
                 <span class="stats-pill"><i class="bi bi-box-seam-fill me-2"></i><?= $total_produk ?> Total Item</span>
