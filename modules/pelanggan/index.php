@@ -5,9 +5,23 @@ include '../../auth/auth.php';
 // --- LOGIC HAPUS ---
 if (isset($_GET['hapus'])) {
     $id = $_GET['hapus'];
-    pg_query($conn, "DELETE FROM transaksi WHERE id_pelanggan = '$id'");
-    pg_query($conn, "DELETE FROM pelanggan WHERE id_pelanggan = '$id'");
-    header("Location: index.php");
+
+    // 1. Cek dulu: Apakah pelanggan ini punya transaksi?
+    $cek_transaksi = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE id_pelanggan = '$id'"));
+
+    if ($cek_transaksi['total'] > 0) {
+        // JIKA ADA TRANSAKSI: Tampilkan Peringatan & Jangan Dihapus
+        echo "<script>
+            alert('🚫 GAGAL MENGHAPUS!\\n\\nPelanggan ini masih memiliki " . $cek_transaksi['total'] . " riwayat transaksi.\\nData tidak boleh dihapus demi keamanan pembukuan.');
+            window.location.href = 'index.php';
+        </script>";
+        exit(); // Stop proses di sini
+    } else {
+        // JIKA TIDAK ADA TRANSAKSI: Aman untuk dihapus
+        pg_query($conn, "DELETE FROM pelanggan WHERE id_pelanggan = '$id'");
+        header("Location: index.php");
+        exit();
+    }
 }
 
 // --- LOGIC SIMPAN / EDIT ---
@@ -233,7 +247,11 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
                                         <div class="d-flex justify-content-end gap-2">
                                             <a href="riwayat.php?id=<?= $row['id_pelanggan'] ?>" class="btn-icon" title="Riwayat"><i class="bi bi-clock-history"></i></a>
                                             <a href="index.php?edit=<?= $row['id_pelanggan'] ?>" class="btn-icon" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                                            <a href="index.php?hapus=<?= $row['id_pelanggan'] ?>" onclick="return confirm('Hapus?')" class="btn-icon delete" title="Hapus"><i class="bi bi-trash3"></i></a>
+                                            <a href="index.php?hapus=<?= $row['id_pelanggan'] ?>" 
+                                               onclick="return confirm('Anda yakin menghapus pelanggan <?= $row['nama'] ?>?')" 
+                                               class="btn-icon delete" title="Hapus">
+                                               <i class="bi bi-trash3"></i>
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
