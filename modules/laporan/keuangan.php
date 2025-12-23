@@ -166,14 +166,19 @@ $js_data   = implode(',', $data_chart_omset);
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="card-modern h-100">
-                    <div class="card-header bg-white py-3 border-bottom">
+                    <div class="card-header bg-white py-3 px-4 border-bottom">
                         <h6 class="fw-bold m-0 text-dark"><i class="bi bi-graph-up me-2"></i>Grafik Harian</h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <?php if(!empty($tabel_data)): ?>
-                            <canvas id="omsetChart" style="max-height: 300px; width: 100%;"></canvas>
+                            <div style="height: 350px; width: 100%;">
+                                <canvas id="omsetChart"></canvas>
+                            </div>
                         <?php else: ?>
-                            <div class="text-center py-5 text-secondary">Tidak ada data.</div>
+                            <div class="text-center py-5 text-secondary">
+                                <i class="bi bi-bar-chart fs-1 d-block mb-2 opacity-25"></i>
+                                Belum ada data transaksi.
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -181,32 +186,32 @@ $js_data   = implode(',', $data_chart_omset);
 
             <div class="col-lg-4">
                 <div class="card-modern h-100">
-                    <div class="card-header bg-white py-3 border-bottom">
+                    <div class="card-header bg-white py-3 px-4 border-bottom">
                         <h6 class="fw-bold m-0 text-dark"><i class="bi bi-table me-2"></i>Rincian Harian</h6>
                     </div>
                     <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-striped mb-0 text-center small">
-                                <thead class="table-light">
+                        <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                            <table class="table table-striped table-hover mb-0 text-center">
+                                <thead class="table-light sticky-top" style="z-index: 5;">
                                     <tr>
-                                        <th class="py-2">Tgl</th>
-                                        <th class="py-2">Order</th>
-                                        <th class="py-2 text-end pe-3">Omset</th>
+                                        <th class="py-3 ps-4">Tgl</th>
+                                        <th class="py-3">Order</th>
+                                        <th class="py-3 text-end pe-4">Omset</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if(!empty($tabel_data)): ?>
                                         <?php foreach($tabel_data as $row): ?>
                                         <tr>
-                                            <td><?= date('d/m', strtotime($row['tgl_order'])) ?></td>
-                                            <td><?= $row['jumlah_transaksi'] ?></td>
-                                            <td class="text-end pe-3 fw-bold text-dark">
+                                            <td class="py-3 ps-4 text-secondary"><?= date('d/m', strtotime($row['tgl_order'])) ?></td>
+                                            <td class="py-3 fw-medium"><?= $row['jumlah_transaksi'] ?></td>
+                                            <td class="py-3 text-end pe-4 fw-bold text-dark">
                                                 <?= number_format($row['total_omset'], 0, ',', '.') ?>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <tr><td colspan="3" class="py-4">Data Kosong</td></tr>
+                                        <tr><td colspan="3" class="py-5 text-muted fst-italic">Data Kosong</td></tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -242,14 +247,43 @@ $js_data   = implode(',', $data_chart_omset);
                         tension: 0.3
                     }]
                 },
-                options: {
+                    options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    maintainAspectRatio: false, // Pastikan ini false biar grafik nyesuain tinggi wrapper
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
                     scales: {
-                        y: { beginAtZero: true, grid: { borderDash: [2, 4] } },
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { borderDash: [2, 4] },
+                            ticks: {
+                                // Format angka sumbu Y jadi Rupiah (biar rapi)
+                                callback: function(value, index, values) {
+                                    if(value >= 1000000) return 'Rp' + value/1000000 + 'Jt';
+                                    if(value >= 1000) return 'Rp' + value/1000 + 'rb';
+                                    return 'Rp' + value;
+                                }
+                            }
+                        },
                         x: { grid: { display: false } }
-                    }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                 }
             });
         }

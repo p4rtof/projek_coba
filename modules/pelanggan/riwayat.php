@@ -109,7 +109,7 @@ $riwayat = pg_query($conn, "SELECT t.*, pr.nama_produk FROM transaksi t JOIN pro
                                 </td>
                                 
                                 <td class="text-end pe-4">
-                                    <a href="../transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3" title="Cetak Nota">
+                                    <a href="../transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>"  class="btn btn-sm btn-outline-dark rounded-pill px-3" title="Cetak Nota">
                                         <i class="bi bi-printer me-1"></i> Invoice
                                     </a>
                                 </td>

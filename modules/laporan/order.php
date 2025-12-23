@@ -180,7 +180,7 @@ $total_data = pg_num_rows($q);
                             </td>
                             
                             <td class="text-end pe-4">
-                                <a href="../transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon" title="Cetak Invoice" target="_blank">
+                                <a href="../transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon" title="Cetak Invoice" >
                                     <i class="bi bi-printer"></i>
                                 </a>
                             </td>

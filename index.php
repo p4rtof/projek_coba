@@ -354,7 +354,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
                                         
-                                        <a href="modules/transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" target="_blank" class="btn-icon btn-gray" title="Print Invoice">
+                                        <a href="modules/transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-gray" title="Print Invoice">
                                             <i class="bi bi-printer"></i>
                                         </a>
                                         
