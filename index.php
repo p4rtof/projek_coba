@@ -32,6 +32,8 @@ if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
 if (isset($_GET['naik_status']) && isset($_GET['uid']) && isset($_GET['status'])) {
     $uid = $_GET['uid']; 
     $st = $_GET['status'];
+    
+    // Logika: Proses -> Selesai (Siap Ambil) -> Done (Selesai Akhir)
     $new = ($st == 'Proses') ? 'Selesai' : (($st == 'Selesai') ? 'Done' : '');
     
     if ($new) {
@@ -76,8 +78,8 @@ $query_count = "SELECT COUNT(*) AS total
 $total_data = pg_fetch_assoc(pg_query($conn, $query_count))['total'];
 $total_pages = ceil($total_data / $limit);
 
-// Query Data (Ambil panjang & lebar dari t.*)
-$query_main = "SELECT t.*, p.nama AS p_nama, pr.nama_produk 
+// Query Data
+$query_main = "SELECT t.*, p.nama AS p_nama, p.hp, pr.nama_produk 
                FROM transaksi t 
                JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
                JOIN produk pr ON t.id_produk=pr.id_produk 
@@ -124,6 +126,9 @@ $q_transaksi = pg_query($conn, $query_main);
         .btn-green { background: #11cf57; } .btn-blue { background: #3b83f6; } .btn-gray { background: #64748b; } .btn-red { background: #ef4444; }
         .page-link { border: none; color: var(--secondary); font-weight: 600; margin: 0 2px; border-radius: 8px; }
         .page-item.active .page-link { background: var(--primary); color: white; }
+        /* Dropdown Minimalis */
+        .dropdown-item { font-size: 0.9rem; padding: 8px 16px; color: var(--secondary); }
+        .dropdown-item:hover { background-color: var(--light); color: var(--primary); }
     </style>
 </head>
 <body>
@@ -271,7 +276,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                         <?php 
                                         $st = $r['status_order'];
                                         if($st == 'Done'): ?>
-                                            <span class="text-success fw-bold small"><i class="bi bi-check-all fs-5"></i> DONE</span>
+                                            <span class="text-success fw-bold small"><i class="bi bi-check-all fs-5"></i> Selesai</span>
                                         <?php elseif($st == 'Selesai'): ?>
                                             <a href="index.php?naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>" 
                                                class="badge badge-status bg-soft-info text-decoration-none">
@@ -293,10 +298,9 @@ $q_transaksi = pg_query($conn, $query_main);
                                                     <button class="btn-icon btn-green dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border:none;" title="Pelunasan">
                                                         <i class="bi bi-check-lg"></i>
                                                     </button>
-                                                    <ul class="dropdown-menu shadow border-0">
-                                                        <li><h6 class="dropdown-header small text-uppercase">Opsi Pelunasan</h6></li>
-                                                        <li><a class="dropdown-item" href="index.php?lunasi_item=true&uid=<?= $r['id'] ?>" onclick="return confirm('Lunasi ITEM ini saja?')">Item Ini Saja</a></li>
-                                                        <li><a class="dropdown-item" href="index.php?lunasi_nota=true&id_trx=<?= $r['id_transaksi'] ?>" onclick="return confirm('Lunasi SEMUA di nota ini?')">Satu Nota</a></li>
+                                                    <ul class="dropdown-menu shadow-sm border-0">
+                                                        <li><a class="dropdown-item" href="index.php?lunasi_item=true&uid=<?= $r['id'] ?>" onclick="return confirm('Lunasi ITEM ini saja?')">Lunasi Item Ini</a></li>
+                                                        <li><a class="dropdown-item" href="index.php?lunasi_nota=true&id_trx=<?= $r['id_transaksi'] ?>" onclick="return confirm('Lunasi SEMUA di nota ini?')">Lunasi Satu Nota</a></li>
                                                     </ul>
                                                 </div>
                                             <?php endif; ?>
@@ -305,7 +309,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
                                             
-                                            <a href="modules/transaksi/invoice.php?item_id=<?= $r['id'] ?>" class="btn-icon btn-gray" title="Print Item Ini">
+                                            <a href="modules/transaksi/invoice.php?item_id=<?= $r['id'] ?>" class="btn-icon btn-gray" target="_blank" title="Cetak Item Ini">
                                                 <i class="bi bi-printer"></i>
                                             </a>
                                             
@@ -338,19 +342,6 @@ $q_transaksi = pg_query($conn, $query_main);
                     <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
                         <a class="page-link" href="?page=<?= $page-1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-left"></i></a>
                     </li>
-                    
-                    <?php 
-                    $start = max(1, $page - 2);
-                    $end = min($total_pages, $page + 2);
-                    if($start > 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                    for ($i = $start; $i <= $end; $i++): ?>
-                        <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
-                            <a class="page-link" href="?page=<?= $i ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><?= $i ?></a>
-                        </li>
-                    <?php endfor; 
-                    if($end < $total_pages) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                    ?>
-
                     <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
                         <a class="page-link" href="?page=<?= $page+1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-right"></i></a>
                     </li>
@@ -370,7 +361,6 @@ $q_transaksi = pg_query($conn, $query_main);
 
         btnToggle.addEventListener('click', function() {
             isCetakMode = !isCetakMode;
-            
             if (isCetakMode) {
                 colsCheckbox.forEach(el => el.style.display = 'table-cell');
                 toolbarCetak.style.display = 'flex';

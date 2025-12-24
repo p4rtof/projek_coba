@@ -15,11 +15,11 @@ if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
     $id_trx = $_GET['id_trx']; pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id_trx'");
     header("Location: riwayat.php?id=" . $id_pelanggan); exit();
 }
-if (isset($_GET['naik_status']) && isset($_GET['id_trx']) && isset($_GET['status'])) {
-    $id_trx = $_GET['id_trx'];
+if (isset($_GET['naik_status']) && isset($_GET['uid']) && isset($_GET['status'])) {
+    $uid = $_GET['uid'];
     $st = $_GET['status'];
     $new = ($st == 'Proses') ? 'Selesai' : (($st == 'Selesai') ? 'Done' : '');
-    if ($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id_transaksi = '$id_trx'"); 
+    if ($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id = '$uid'"); 
     header("Location: riwayat.php?id=" . $id_pelanggan); exit();
 }
 if (isset($_GET['hapus']) && isset($_GET['uid'])) {
@@ -34,7 +34,6 @@ if (!$p) { echo "<script>alert('Pelanggan tidak ditemukan!'); window.location.hr
 
 // --- PERSIAPAN NOMOR WA ---
 $hp_display = $p['hp'] ?? '-';
-// Ubah 08... jadi 628... dan hapus karakter aneh
 $hp_link = preg_replace('/^0/', '62', preg_replace('/[^0-9]/', '', $hp_display));
 
 // --- QUERY DATA ---
@@ -60,42 +59,29 @@ $total_riwayat = pg_num_rows($q_riwayat);
     <style>
         :root { --primary: #4f46e5; --secondary: #64748b; --dark: #0f172a; --light: #f8fafc; --border: #e2e8f0; --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); }
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); }
-        .card-modern { background: white; border: 1px solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s; height: 100%; overflow: hidden; }
+        /* FIXED: Added position relative */
+        .card-modern { background: white; border: 1px solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s; height: 100%; overflow: hidden; position: relative; }
         .customer-header h1 { font-weight: 800; letter-spacing: -1px; color: var(--dark); }
-        
-        /* STYLE PILL (TOMBOL BULAT LONJONG) */
-        .info-pill { 
-            background: white; border: 1px solid var(--border); padding: 8px 16px; 
-            border-radius: 50px; font-size: 0.9rem; color: var(--secondary); 
-            display: inline-flex; align-items: center; gap: 8px; font-weight: 500;
-            text-decoration: none; /* Hapus garis bawah link */
-            transition: all 0.2s ease;
-        }
-        
-        /* Efek Hover Khusus Link WA */
-        a.info-pill:hover { 
-            background-color: #dcfce7; /* Hijau muda halus */
-            border-color: #86efac; 
-            color: #166534; 
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
+        .info-pill { background: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 50px; font-size: 0.9rem; color: var(--secondary); display: inline-flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; transition: all 0.2s ease; }
+        a.info-pill:hover { background-color: #dcfce7; border-color: #86efac; color: #166534; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .icon-box-stat { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
         .icon-blue { background: #e0e7ff; color: #4338ca; } .icon-green { background: #dcfce7; color: #166534; } .icon-orange { background: #ffedd5; color: #9a3412; }
-        
         .btn-modern { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
         .btn-modern:hover { background: #4338ca; transform: translateY(-2px); color: white; }
-        
-        .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none; color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* FIXED: Added relative & z-index */
+        .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none; color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; z-index: 10; }
         .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
         .btn-green { background: #11cf57; } .btn-blue { background: #3b83f6; } .btn-gray { background: #64748b; } .btn-red { background: #ef4444; }
-        
         .table-custom th { background: #f8fafc; color: var(--secondary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 16px 24px; }
         .table-custom td { padding: 16px 24px; vertical-align: middle; border-bottom: 1px solid var(--border); }
-        .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; }
+        /* FIXED: Added relative & z-index */
+        .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; position: relative; z-index: 10; }
         .bg-soft-success { background: #dcfce7; color: #166534; } .bg-soft-danger { background: #fee2e2; color: #991b1b; } .bg-soft-warning { background: #fef3c7; color: #92400e; } .bg-soft-info { background: #e0f2fe; color: #075985; }
         .form-control-modern { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--light); }
+        
+        /* Dropdown Minimalis */
+        .dropdown-item { font-size: 0.9rem; padding: 8px 16px; color: var(--secondary); }
+        .dropdown-item:hover { background-color: var(--light); color: var(--primary); }
     </style>
 </head>
 <body>
@@ -106,12 +92,11 @@ $total_riwayat = pg_num_rows($q_riwayat);
             <a href="index.php" class="btn btn-light border rounded-pill shadow-sm px-3 mb-3 d-inline-flex align-items-center fw-bold text-secondary" style="font-size: 0.85rem;">
                 <i class="bi bi-arrow-left me-2"></i> Kembali ke Daftar
             </a>
-            
             <div class="row align-items-center">
                 <div class="col-md-7 customer-header">
                     <h1 class="display-5 mb-2"><?= $p['nama'] ?></h1>
                     <div class="d-flex gap-2 flex-wrap">
-                        <div class="info-pill"><i class="bi bi-person-badge text-primary"></i> ID: <?= $p['id_pelanggan'] ?></div>
+                        <div class="info-pill text-dark"><i class="bi bi-person-badge text-primary"></i> ID: <?= $p['id_pelanggan'] ?></div>
                         
                         <?php if($hp_display && $hp_display != '-'): ?>
                             <a href="https://wa.me/<?= $hp_link ?>" target="_blank" class="info-pill" title="Chat WhatsApp">
@@ -121,14 +106,30 @@ $total_riwayat = pg_num_rows($q_riwayat);
                             <div class="info-pill text-muted"><i class="bi bi-telephone-x"></i> -</div>
                         <?php endif; ?>
 
-                        <div class="info-pill"><i class="bi bi-geo-alt-fill text-danger"></i> <?= $p['alamat'] ?? '-' ?></div>
+                        <div class="info-pill text-dark"><i class="bi bi-geo-alt-fill text-danger"></i> <?= $p['alamat'] ?? '-' ?></div>
                     </div>
                 </div>
-                
-                <div class="col-md-5 mt-3 mt-md-0 text-md-end">
-                    <a href="../transaksi/keranjang.php?id_pelanggan=<?= $id_pelanggan ?>" class="btn btn-modern d-inline-flex align-items-center gap-2 py-3 px-4 shadow-lg">
-                        <i class="bi bi-plus-lg fs-5"></i> <span>Buat Order Baru</span>
-                    </a>
+                <div class="col-md-5 mt-3 mt-md-0">
+                    <div class="card-modern p-3 bg-white border shadow-sm">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box-stat bg-success bg-opacity-10 text-success me-3">
+                                    <i class="bi bi-whatsapp"></i>
+                                </div>
+                                <div>
+                                    <small class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem;">Hubungi Pelanggan</small>
+                                    <div>
+                                        <a href="https://wa.me/<?= $hp_link ?>" target="_blank" class="text-decoration-none fw-bold text-dark stretched-link">
+                                            Chat WhatsApp <i class="bi bi-arrow-right ms-1 small"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="../transaksi/keranjang.php?id_pelanggan=<?= $id_pelanggan ?>" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" style="position: relative; z-index: 2;">
+                                <i class="bi bi-plus-lg"></i> Order
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -149,7 +150,7 @@ $total_riwayat = pg_num_rows($q_riwayat);
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2"><i class="bi bi-clock-history text-primary fs-5"></i><h5 class="fw-bold m-0">Riwayat Transaksi</h5></div>
                 <div class="d-flex gap-2 w-95 w-md-auto justify-content-end align-items-center">
-                    <form method="GET" class="d-flex gap-2 w-90 w-md-auto">
+                    <form method="GET" class="d-flex gap-2 w-100 w-md-auto">
                         <input type="hidden" name="id" value="<?= $id_pelanggan ?>">
                         <div class="position-relative flex-grow-1"><input type="text" name="q" class="form-control form-control-modern" placeholder="Cari ID / Produk..." value="<?= $keyword ?>"></div>
                         <button type="submit" class="btn btn-light border" style="border-radius: 10px;"><i class="bi bi-search"></i></button>
@@ -193,7 +194,14 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                         <div class="fw-bold text-primary">#<?= $r['id_transaksi'] ?></div>
                                         <div class="small text-secondary" style="font-size: 0.75rem;"><?= date('d/m/y H:i', strtotime($r['waktu_order'])) ?></div>
                                     </td>
-                                    <td class="text-start text-secondary" style="min-width: 150px; max-width: 250px;"><?= $r['nama_produk'] ?></td>
+                                    <td class="text-start text-secondary" style="min-width: 150px; max-width: 250px;">
+                                        <?= $r['nama_produk'] ?>
+                                        <?php if($r['panjang'] > 0): ?>
+                                            <div class="small fst-italic text-muted mt-1" style="font-size: 0.75rem;">
+                                                <i class="bi bi-rulers"></i> <?= (float)$r['panjang'] ?>m x <?= (float)$r['lebar'] ?>m
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-nowrap"><span class="badge bg-light text-dark border"><?= $r['jumlah'] ?></span></td>
                                     <td class="fw-bold text-dark text-nowrap">Rp <?= number_format($r['total_harga'], 0, ',', '.') ?></td>
                                     
@@ -209,17 +217,15 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                         <?php 
                                         $st = $r['status_order'];
                                         if($st == 'Done'): ?>
-                                            <span class="text-success fw-bold small"><i class="bi bi-check-all fs-5"></i> DONE</span>
+                                            <span class="text-success fw-bold small"><i class="bi bi-check-all fs-5"></i> Selesai</span>
                                         <?php elseif($st == 'Selesai'): ?>
-                                            <a href="riwayat.php?id=<?= $id_pelanggan ?>&naik_status=true&id_trx=<?= $r['id_transaksi'] ?>&status=<?= $st ?>" 
-                                               class="badge badge-status bg-soft-info text-decoration-none"
-                                               onclick="return confirm('Ubah status jadi DONE (Selesai)?')">
+                                            <a href="riwayat.php?id=<?= $id_pelanggan ?>&naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>" 
+                                               class="badge badge-status bg-soft-info text-decoration-none">
                                                Siap Ambil <i class="bi bi-chevron-right"></i>
                                             </a>
                                         <?php else: ?>
-                                            <a href="riwayat.php?id=<?= $id_pelanggan ?>&naik_status=true&id_trx=<?= $r['id_transaksi'] ?>&status=<?= $st ?>" 
-                                               class="badge badge-status bg-soft-warning text-decoration-none"
-                                               onclick="return confirm('Ubah status jadi SIAP AMBIL?')">
+                                            <a href="riwayat.php?id=<?= $id_pelanggan ?>&naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>" 
+                                               class="badge badge-status bg-soft-warning text-decoration-none">
                                                Proses <i class="bi bi-chevron-right"></i>
                                             </a>
                                         <?php endif; ?>
@@ -230,21 +236,12 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                             
                                             <?php if ($r['status_pembayaran'] == 'Belum Lunas'): ?>
                                                 <div class="dropdown d-inline-block">
-                                                    <button class="btn-icon btn-green dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border:none;">
+                                                    <button class="btn-icon btn-green dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border:none;" title="Pelunasan">
                                                         <i class="bi bi-check-lg"></i>
                                                     </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                                                        <li><h6 class="dropdown-header small text-uppercase">Pilih Opsi Pelunasan</h6></li>
-                                                        <li>
-                                                            <a class="dropdown-item" href="riwayat.php?id=<?= $id_pelanggan ?>&lunasi_item=true&uid=<?= $r['id'] ?>" onclick="return confirm('Yakin LUNASI item ini saja?')">
-                                                                <i class="bi bi-box-seam me-2 text-success"></i> Item Ini Saja
-                                                            </a>
-                                                        </li>
-                                                        <li>
-                                                            <a class="dropdown-item" href="riwayat.php?id=<?= $id_pelanggan ?>&lunasi_nota=true&id_trx=<?= $r['id_transaksi'] ?>" onclick="return confirm('Yakin LUNASI semua item di Nota #<?= $r['id_transaksi'] ?>?')">
-                                                                <i class="bi bi-receipt me-2 text-primary"></i> Satu Nota (Semua)
-                                                            </a>
-                                                        </li>
+                                                    <ul class="dropdown-menu shadow-sm border-0">
+                                                        <li><a class="dropdown-item" href="riwayat.php?id=<?= $id_pelanggan ?>&lunasi_item=true&uid=<?= $r['id'] ?>" onclick="return confirm('Yakin LUNASI item ini saja?')">Lunasi Item Ini</a></li>
+                                                        <li><a class="dropdown-item" href="riwayat.php?id=<?= $id_pelanggan ?>&lunasi_nota=true&id_trx=<?= $r['id_transaksi'] ?>" onclick="return confirm('Yakin LUNASI semua item di Nota #<?= $r['id_transaksi'] ?>?')">Lunasi Satu Nota</a></li>
                                                     </ul>
                                                 </div>
                                             <?php endif; ?>
