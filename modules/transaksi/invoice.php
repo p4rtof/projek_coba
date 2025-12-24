@@ -2,21 +2,18 @@
 include '../../config/koneksi.php';
 include '../../auth/auth.php';
 
-// --- LOGIKA MENANGKAP ID (SATU ATAU BANYAK) ---
+// --- LOGIKA MENANGKAP ID ---
 $ids_to_print = [];
 
 if (isset($_POST['ids']) && !empty($_POST['ids'])) {
-    // KASUS 1: Dari Keranjang (Banyak ID via POST)
     $ids_to_print = $_POST['ids'];
 } elseif (isset($_GET['id']) && !empty($_GET['id'])) {
-    // KASUS 2: Dari Riwayat/Satuan (Satu ID via GET)
     $ids_to_print = [$_GET['id']];
 } else {
     echo "<script>alert('Data transaksi tidak ditemukan!'); window.location.href='../../index.php';</script>";
     exit;
 }
 
-// Escape string untuk keamanan database
 $ids_clean = array_map(function($id) use ($conn) {
     return pg_escape_string($conn, $id);
 }, $ids_to_print);
@@ -44,9 +41,8 @@ if (!$result || pg_num_rows($result) == 0) {
     die("Data tidak ditemukan.");
 }
 
-// Ambil data baris pertama untuk Info Pelanggan & Header (Asumsi 1 pelanggan sama)
 $first_row = pg_fetch_assoc($result);
-pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
+pg_result_seek($result, 0); 
 ?>
 
 <!DOCTYPE html>
@@ -57,21 +53,27 @@ pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         body { background: #f0f2f5; font-family: sans-serif; -webkit-print-color-adjust: exact; }
-        .invoice-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        /* Padding box tetap kecil (20px) agar hemat ruang pinggir */
+        .invoice-box { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        }
         
         .payment-box { 
             background: #f8f9fa; 
             border: 1px solid #dee2e6; 
             border-radius: 6px; 
-            padding: 10px 15px; 
-            font-size: 0.9rem;
+            padding: 8px 12px; 
+            font-size: 0.85rem;
         }
         .payment-box strong { color: #495057; }
         
-        /* --- CSS KHUSUS PRINT --- */
         @media print {
             @page { margin: 0; size: auto; }
-            body { background: white; margin: 1.5cm; }
+            body { background: white; margin: 1cm; }
             .no-print { display: none !important; }
             .invoice-box { box-shadow: none; border: none; padding: 0; width: 100%; }
             .container { max-width: 100%; padding: 0; }
@@ -80,7 +82,7 @@ pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
 </head>
 <body>
 
-<div class="container py-4">
+<div class="container py-3">
     <div class="row justify-content-center">
         <div class="col-lg-9">
 
@@ -90,34 +92,31 @@ pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
             </div>
 
             <div class="invoice-box">
-                <div class="d-flex justify-content-between align-items-start mb-4 border-bottom pb-3">
+                <div class="d-flex justify-content-between align-items-start mb-3 border-bottom pb-2">
                     <div>
-                        <h3 class="fw-bold text-primary mb-1">Zaddy Printing</h3>
-                        <p class="text-muted small mb-0">Jl. Printing Digital No. 123, Kota Digital</p>
+                        <h4 class="fw-bold text-primary mb-0">Zaddy Printing</h4>
+                        <p class="text-muted small mb-0">Jl. Printing Digital No. 123, Jakarta</p>
                         <p class="text-muted small mb-0">WA: 0812-3456-7890</p>
                     </div>
                     <div class="text-end">
-                        <h2 class="fw-bold text-dark mb-0">INVOICE</h2>
-                        <span class="text-muted fw-bold">
+                        <h3 class="fw-bold text-dark mb-0">INVOICE</h3>
+                        <span class="text-muted fw-bold small">
                             <?= count($ids_to_print) > 1 ? '#GABUNGAN' : '#' . $first_row['id_transaksi'] ?>
                         </span>
                     </div>
                 </div>
 
-                <div class="row mb-4">
+                <div class="row mb-3">
                     <div class="col-6">
-                        <small class="text-muted fw-bold text-uppercase">Ditagihkan Kepada:</small>
-                        <h6 class="fw-bold mb-1 mt-1"><?= $first_row['p_nama'] ?></h6>
-                        <div class="small text-muted">
-                            <?= $first_row['alamat'] ?? '-' ?><br>
-                            <?= $first_row['hp'] ?? '-' ?>
+                        <small class="text-muted fw-bold text-uppercase">Kepada:</small>
+                        <div class="fw-bold text-dark"><?= $first_row['p_nama'] ?></div>
+                        <div class="small text-muted text-truncate">
+                            <?= $first_row['alamat'] ?? '-' ?> | <?= $first_row['hp'] ?? '-' ?>
                         </div>
                     </div>
                     <div class="col-6 text-end">
-                        <small class="text-muted fw-bold text-uppercase">Detail Order:</small>
-                        <div class="small mt-1">
-                            <span class="fw-bold">Tanggal:</span> <?= date('d/m/Y, H:i', strtotime($first_row['waktu_order'])) ?><br>
-                            <span class="fw-bold">Status:</span> 
+                        <div class="small">
+                            <span class="fw-bold">Tgl:</span> <?= date('d/m/Y H:i', strtotime($first_row['waktu_order'])) ?><br>
                             <span class="badge bg-<?= $first_row['status_pembayaran'] == 'Lunas' ? 'success' : 'danger' ?> text-uppercase" style="font-size: 0.7rem;">
                                 <?= $first_row['status_pembayaran'] ?>
                             </span>
@@ -125,37 +124,31 @@ pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
                     </div>
                 </div>
 
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="payment-box">
-                            <div class="row align-items-center">
-                                <div class="col-auto">
-                                    <small class="text-muted fw-bold text-uppercase d-block">Metode Pembayaran</small>
-                                </div>
-                                <div class="col">
-                                    <?php if (($first_row['metode_pembayaran'] ?? '') == 'Transfer'): ?>
-                                        <span><i class="bi bi-bank me-1"></i> Transfer Bank <strong><?= $first_row['nama_bank'] ?></strong></span>
-                                        <span class="mx-2">|</span>
-                                        <span>No: <strong><?= $first_row['no_rekening'] ?></strong></span>
-                                        <span class="mx-2">|</span>
-                                        <span class="text-muted fst-italic">a.n <?= $first_row['atas_nama'] ?></span>
-                                    <?php else: ?>
-                                        <span><i class="bi bi-cash me-1"></i> Tunai (Cash)</span>
-                                    <?php endif; ?>
-                                </div>
+                <div class="mb-3">
+                    <div class="payment-box">
+                        <div class="d-flex align-items-center">
+                            <small class="text-muted fw-bold text-uppercase me-2">Bayar via:</small>
+                            <div class="small">
+                                <?php if (($first_row['metode_pembayaran'] ?? '') == 'Transfer'): ?>
+                                    <span><i class="bi bi-bank me-1"></i> <strong><?= $first_row['nama_bank'] ?></strong></span>
+                                    <span class="mx-2">|</span>
+                                    <span><strong><?= $first_row['no_rekening'] ?></strong></span>
+                                <?php else: ?>
+                                    <span><i class="bi bi-cash me-1"></i> Tunai (Cash)</span>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered border-light mb-0">
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered border-light mb-0 table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th class="py-2 ps-3">Deskripsi Produk</th>
-                                <th class="py-2 text-center" style="width: 80px;">Qty</th>
-                                <th class="py-2 text-end" style="width: 150px;">Harga Satuan</th>
-                                <th class="py-2 text-end pe-3" style="width: 150px;">Subtotal</th>
+                                <th class="py-2 ps-2">Produk</th>
+                                <th class="py-2 text-center">Qty</th>
+                                <th class="py-2 text-end">Harga</th>
+                                <th class="py-2 text-end pe-2">Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -165,19 +158,18 @@ pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
                                 $grand_total += $row['total_harga'];
                             ?>
                             <tr>
-                                <td class="ps-3 py-3">
-                                    <span class="fw-bold text-dark"><?= $row['nama_produk'] ?></span>
+                                <td class="ps-2 py-2">
+                                    <span class="fw-bold text-dark small"><?= $row['nama_produk'] ?></span>
                                     <?php if(count($ids_to_print) > 1): ?>
-                                        <br><small class="text-muted" style="font-size: 0.75rem;">Ref: #<?= $row['id_transaksi'] ?></small>
+                                        <br><small class="text-muted" style="font-size: 0.65rem;">Ref: #<?= $row['id_transaksi'] ?></small>
                                     <?php endif; ?>
-
                                     <?php if($row['panjang'] > 0): ?>
-                                        <br><small class="text-muted fst-italic">Ukuran: <?= floatval($row['panjang']) ?>m x <?= floatval($row['lebar']) ?>m</small>
+                                        <br><small class="text-muted fst-italic" style="font-size: 0.7rem;"><?= floatval($row['panjang']) ?>m x <?= floatval($row['lebar']) ?>m</small>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-center py-3"><?= number_format($row['jumlah']) ?></td>
-                                <td class="text-end py-3">Rp <?= number_format($row['harga_satuan'], 0, ',','.') ?></td>
-                                <td class="text-end pe-3 py-3 fw-bold">Rp <?= number_format($row['total_harga'], 0, ',','.') ?></td>
+                                <td class="text-center py-2 small"><?= number_format($row['jumlah']) ?></td>
+                                <td class="text-end py-2 small">Rp <?= number_format($row['harga_satuan'], 0, ',','.') ?></td>
+                                <td class="text-end pe-2 py-2 fw-bold small">Rp <?= number_format($row['total_harga'], 0, ',','.') ?></td>
                             </tr>
                             <?php endwhile; ?>
                         </tbody>
@@ -186,7 +178,6 @@ pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
 
                 <div class="row mt-4">
                     <div class="col-7"></div>
-
                     <div class="col-5">
                         <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-2">
                             <span class="fw-bold text-secondary">TOTAL TAGIHAN</span>
@@ -195,14 +186,13 @@ pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
 
                         <div class="text-center mt-4">
                             <p class="mb-5 fw-bold small text-muted">Hormat Kami,</p>
-                            <br>
-                            <p class="fw-bold mb-0 text-decoration-underline text-dark">Zaddy Printing</p>
+                            <br> <p class="fw-bold mb-0 text-decoration-underline text-dark">Zaddy Printing</p>
                         </div>
                     </div>
                 </div>
                 
-                <div class="text-center mt-5 pt-3 border-top">
-                    <small class="text-muted fst-italic">Terima kasih atas kepercayaan Anda.</small>
+                <div class="text-center mt-3 pt-2 border-top">
+                    <small class="text-muted fst-italic" style="font-size: 0.7rem;">Terima kasih atas kepercayaan Anda.</small>
                 </div>
 
             </div>

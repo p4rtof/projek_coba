@@ -256,7 +256,7 @@ $q_transaksi = pg_query($conn, $query_main);
             </div>
         </div>
 
-        <form action="modules/transaksi/invoice.php" method="POST" target="_blank" id="formCetakInvoice">
+        <form action="modules/transaksi/invoice.php" method="POST"  id="formCetakInvoice">
             
             <div class="card-modern overflow-hidden">
                 
@@ -350,7 +350,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
                                             
-                                            <a href="modules/transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-gray" title="Print Invoice" target="_blank">
+                                            <a href="modules/transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-gray" title="Print Invoice" >
                                                 <i class="bi bi-printer"></i>
                                             </a>
                                             
