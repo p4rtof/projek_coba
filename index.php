@@ -12,29 +12,37 @@ $jumlah_order = $q_order['total'] ?? 0;
 $q_utang = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE status_pembayaran = 'Belum Lunas'"));
 $jumlah_utang = $q_utang['total'] ?? 0;
 
-// --- LOGIC: TANDAI LUNAS ---
-if (isset($_GET['lunasi'])) {
-    $id = $_GET['id'];
-    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id'");
+// --- LOGIC: LUNASI PER ITEM ---
+if (isset($_GET['lunasi_item']) && isset($_GET['uid'])) {
+    $uid = $_GET['uid']; 
+    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id = '$uid'");
+    header("Location: index.php"); exit();
+}
+
+// --- LOGIC: LUNASI SATU NOTA ---
+if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
+    $id_trx = $_GET['id_trx']; 
+    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id_trx'");
     header("Location: index.php"); exit();
 }
 
 // --- LOGIC: UPDATE STATUS ---
 if (isset($_GET['naik_status'])) {
-    $id = $_GET['id'];
+    $id_trx = $_GET['id'];
     $st = $_GET['status'];
     $new = ($st == 'Proses') ? 'Selesai' : (($st == 'Selesai') ? 'Done' : '');
-    if ($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id_transaksi = '$id'"); 
+    if ($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id_transaksi = '$id_trx'"); 
     header("Location: index.php"); exit();
 }
 
 // --- LOGIC: HAPUS ---
-if (isset($_GET['hapus'])) {
-    pg_query($conn, "DELETE FROM transaksi WHERE id_transaksi = '{$_GET['hapus']}'");
+if (isset($_GET['hapus']) && isset($_GET['uid'])) {
+    $uid = $_GET['uid'];
+    pg_query($conn, "DELETE FROM transaksi WHERE id = '$uid'");
     header("Location: index.php"); exit();
 }
 
-// --- LOGIC PAGINATION & FILTER ---
+// --- FILTER & PAGINATION ---
 $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
@@ -54,7 +62,7 @@ if (!empty($tanggal)) {
 
 $where_sql = count($conditions) > 0 ? "WHERE " . implode(" AND ", $conditions) : "";
 
-// Hitung Total Data
+// Hitung Total
 $query_count = "SELECT COUNT(*) AS total 
                 FROM transaksi t 
                 JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
@@ -63,13 +71,13 @@ $query_count = "SELECT COUNT(*) AS total
 $total_data = pg_fetch_assoc(pg_query($conn, $query_count))['total'];
 $total_pages = ceil($total_data / $limit);
 
-// Query Data
+// Query Data (Pastikan ambil kolom 'id')
 $query_main = "SELECT t.*, p.nama AS p_nama, pr.nama_produk 
                FROM transaksi t 
                JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
                JOIN produk pr ON t.id_produk=pr.id_produk 
                $where_sql
-               ORDER BY t.id_transaksi DESC 
+               ORDER BY t.id_transaksi DESC, t.waktu_order DESC
                LIMIT $limit OFFSET $offset";
 
 $q_transaksi = pg_query($conn, $query_main);
@@ -94,73 +102,27 @@ $q_transaksi = pg_query($conn, $query_main);
             --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
         }
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); }
-        
-        .card-modern {
-            background: white; border: 1px solid white; border-radius: 16px;
-            box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s;
-            height: 100%;
-        }
-        .card-modern:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); }
-
-        .icon-box-stat {
-            width: 48px; height: 48px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; font-size: 24px;
-        }
+        .card-modern { background: white; border: 1px solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: all 0.2s; height: 100%; }
+        .card-modern:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
+        .icon-box-stat { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
         .icon-blue { background: #e0e7ff; color: #4338ca; }
         .icon-green { background: #dcfce7; color: #166534; }
         .icon-orange { background: #ffedd5; color: #9a3412; }
-
-        .form-control-modern {
-            border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
-            font-size: 0.95rem; background-color: var(--light); transition: all 0.2s;
-        }
-        .form-control-modern:focus { background-color: white; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
-        
-        .btn-modern {
-            background: var(--primary); color: white; border: none; padding: 10px 20px;
-            border-radius: 10px; font-weight: 600; transition: all 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-        }
+        .form-control-modern { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--light); }
+        .btn-modern { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
         .btn-modern:hover { background: var(--primary-hover); transform: translateY(-2px); color: white; }
-
-        .table-custom { margin: 0; }
-        .table-custom thead th {
-            background: #f8fafc; color: var(--secondary); font-size: 0.75rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 24px; border-bottom: 1px solid var(--border);
-        }
-        .table-custom tbody td { 
-            padding: 16px 24px; vertical-align: middle; font-size: 0.95rem; 
-            border-bottom: 1px solid var(--border); color: var(--dark);
-        }
-        .table-custom tbody tr:hover { background-color: #f8fafc; }
-
-        .badge-status { 
-            padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; 
-            font-weight: 700; letter-spacing: 0.5px; transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;
-        }
-        .badge-status:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-
+        .table-custom th { background: #f8fafc; color: var(--secondary); font-size: 0.75rem; text-transform: uppercase; padding: 16px 24px; }
+        .table-custom td { padding: 16px 24px; vertical-align: middle; border-bottom: 1px solid var(--border); }
+        .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
         .bg-soft-success { background: #dcfce7; color: #166534; }
         .bg-soft-danger { background: #fee2e2; color: #991b1b; }
         .bg-soft-warning { background: #fef3c7; color: #92400e; }
         .bg-soft-info { background: #e0f2fe; color: #075985; }
-
-        .btn-icon {
-            width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none;
-            color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
-
-        .btn-green { background-color: #11cf579f; } .btn-green:hover { background-color: #1db956ff; }
-        .btn-blue { background-color: #3b83f6b3; } .btn-blue:hover { background-color: #2563eb; }
-        .btn-gray { background-color: #64748bbe; } .btn-gray:hover { background-color: #475569; }
-        .btn-red { background-color: #ef4444ad; } .btn-red:hover { background-color: #dc2626; }
-
+        .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none; color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-icon:hover { transform: translateY(-2px); }
+        .btn-green { background: #11cf57; } .btn-blue { background: #3b83f6; } .btn-gray { background: #64748b; } .btn-red { background: #ef4444; }
         .page-link { border: none; color: var(--secondary); font-weight: 600; margin: 0 2px; border-radius: 8px; }
-        .page-item.active .page-link { background-color: var(--primary); color: white; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3); }
-        .page-link:hover { background-color: var(--light); color: var(--primary); }
+        .page-item.active .page-link { background: var(--primary); color: white; }
     </style>
 </head>
 <body>
@@ -172,7 +134,6 @@ $q_transaksi = pg_query($conn, $query_main);
         <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
                 <h3 class="fw-bold m-0" style="letter-spacing: -0.5px;">Dashboard Admin</h3>
-                <!-- <p class="text-secondary m-0 small">Pantau performa bisnismu hari ini.</p> -->
             </div>
             <div>
                 <div class="bg-white px-3 py-2 rounded-3 border text-secondary small fw-medium shadow-sm">
@@ -219,55 +180,33 @@ $q_transaksi = pg_query($conn, $query_main);
                 </div>
 
                 <div class="d-flex gap-2 w-95 w-md-auto justify-content-end align-items-center">
-                    
                     <form method="GET" class="d-flex gap-2 w-90 w-md-auto">
-                        <div class="position-relative">
-                            <input type="date" name="tgl" class="form-control form-control-modern" 
-                                   style="width: auto;" 
-                                   value="<?= $tanggal ?>" 
-                                   title="Filter Tanggal"
-                                   onchange="this.form.submit()"> 
-                        </div>
-
+                        <input type="date" name="tgl" class="form-control form-control-modern" style="width: auto;" value="<?= $tanggal ?>" onchange="this.form.submit()"> 
                         <div class="position-relative flex-grow-1">
-                            <input type="text" name="q" class="form-control form-control-modern" 
-                                   placeholder="Cari Transaksi..." 
-                                   value="<?= $keyword ?>">
+                            <input type="text" name="q" class="form-control form-control-modern" placeholder="Cari Transaksi..." value="<?= $keyword ?>">
                         </div>
-                        
-                        <?php if($keyword || $tanggal): ?>
-                            <a href="index.php" class="btn btn-light border text-danger d-flex align-items-center justify-content-center" style="width: 42px; border-radius: 10px;" title="Reset Filter">
-                                <i class="bi bi-x-lg"></i>
-                            </a>
-                        <?php endif; ?>
+                        <button type="submit" class="btn btn-light border" style="border-radius: 10px;"><i class="bi bi-search"></i></button>
                     </form>
 
                     <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2" style="border-radius: 10px;">
-                        <i class="bi bi-printer-fill"></i>
-                        <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span>
+                        <i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span>
                     </button>
 
                     <a href="modules/transaksi/keranjang.php" class="btn btn-modern d-flex align-items-center gap-2 shadow-sm px-4 py-2" style="background-color: #4f46e5; color: white;">
-                        <i class="bi bi-plus-lg"></i> 
-                        <span class="d-none d-md-inline fw-bold">Buat Transaksi Baru</span>
+                        <i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline fw-bold">Buat Transaksi Baru</span>
                     </a>
-
                 </div>
             </div>
         </div>
 
-        <form action="modules/transaksi/invoice.php" method="POST"  id="formCetakInvoice">
+        <form action="modules/transaksi/invoice.php" method="POST" id="formCetakInvoice">
             
             <div class="card-modern overflow-hidden">
-                
                 <div id="toolbarCetak" class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between" style="display:none;">
                     <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold">
-                        <i class="bi bi-info-circle-fill"></i>
-                        <span>Mode Cetak Aktif: Centang transaksi yang ingin digabung.</span>
+                        <i class="bi bi-info-circle-fill"></i> <span>Mode Cetak Aktif: Centang transaksi yang ingin digabung.</span>
                     </div>
-                    <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold">
-                        <i class="bi bi-printer me-2"></i>PRINT SEKARANG
-                    </button>
+                    <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i class="bi bi-printer me-2"></i>PRINT SEKARANG</button>
                 </div>
 
                 <div class="table-responsive">
@@ -338,23 +277,29 @@ $q_transaksi = pg_query($conn, $query_main);
                                     
                                     <td class="text-end pe-4 text-nowrap">
                                         <div class="d-flex justify-content-end gap-2">
+                                            
                                             <?php if ($r['status_pembayaran'] == 'Belum Lunas'): ?>
-                                                <a href="index.php?lunasi=true&id=<?= $r['id_transaksi'] ?>" 
-                                                   onclick="return confirm('Tandai transaksi <?= $r['id_transaksi'] ?> sebagai LUNAS?')" 
-                                                   class="btn-icon btn-green" title="Tandai Lunas">
-                                                    <i class="bi bi-check-lg"></i>
-                                                </a>
+                                                <div class="dropdown d-inline-block">
+                                                    <button class="btn-icon btn-green dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border:none;" title="Pelunasan">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu shadow border-0">
+                                                        <li><h6 class="dropdown-header small text-uppercase">Opsi Pelunasan</h6></li>
+                                                        <li><a class="dropdown-item" href="index.php?lunasi_item=true&uid=<?= $r['id'] ?>" onclick="return confirm('Lunasi ITEM ini saja?')">Item Ini Saja</a></li>
+                                                        <li><a class="dropdown-item" href="index.php?lunasi_nota=true&id_trx=<?= $r['id_transaksi'] ?>" onclick="return confirm('Lunasi SEMUA di nota ini?')">Satu Nota</a></li>
+                                                    </ul>
+                                                </div>
                                             <?php endif; ?>
 
                                             <a href="modules/transaksi/edit.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-blue" title="Edit">
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
                                             
-                                            <a href="modules/transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-gray" title="Print Invoice" >
+                                            <a href="modules/transaksi/invoice.php?item_id=<?= $r['id'] ?>" class="btn-icon btn-gray" title="Print Item Ini">
                                                 <i class="bi bi-printer"></i>
                                             </a>
                                             
-                                            <a href="index.php?hapus=<?= $r['id_transaksi'] ?>" onclick="return confirm('Hapus transaksi?')" class="btn-icon btn-red" title="Hapus">
+                                            <a href="index.php?hapus=true&uid=<?= $r['id'] ?>" onclick="return confirm('Hapus item ini?')" class="btn-icon btn-red" title="Hapus">
                                                 <i class="bi bi-trash3"></i>
                                             </a>
                                         </div>
@@ -408,7 +353,6 @@ $q_transaksi = pg_query($conn, $query_main);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // SCRIPT TOGGLE MODE CETAK
         const btnToggle = document.getElementById('btnToggleCetak');
         const toolbarCetak = document.getElementById('toolbarCetak');
         const colsCheckbox = document.querySelectorAll('.col-checkbox');
@@ -418,27 +362,33 @@ $q_transaksi = pg_query($conn, $query_main);
             isCetakMode = !isCetakMode;
             
             if (isCetakMode) {
-                // Tampilkan Checkbox
                 colsCheckbox.forEach(el => el.style.display = 'table-cell');
                 toolbarCetak.style.display = 'flex';
-                
-                // Ubah Tombol Toggle jadi 'Batal'
                 btnToggle.classList.remove('btn-dark');
                 btnToggle.classList.add('btn-light', 'border', 'text-danger');
                 btnToggle.innerHTML = '<i class="bi bi-x-lg"></i> <span class="small fw-bold">Batal</span>';
             } else {
-                // Sembunyikan Checkbox
                 colsCheckbox.forEach(el => el.style.display = 'none');
                 toolbarCetak.style.display = 'none';
-                
-                // Reset Tombol
                 btnToggle.classList.remove('btn-light', 'border', 'text-danger');
                 btnToggle.classList.add('btn-dark');
                 btnToggle.innerHTML = '<i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span>';
             }
         });
 
-        // Script Select All Checkbox
+        const checkboxes = document.querySelectorAll('.check-item');
+        checkboxes.forEach(box => {
+            box.addEventListener('change', function() {
+                const idToMatch = this.value;
+                const isChecked = this.checked;
+                checkboxes.forEach(otherBox => {
+                    if (otherBox.value === idToMatch) {
+                        otherBox.checked = isChecked;
+                    }
+                });
+            });
+        });
+        
         document.getElementById('checkAll').addEventListener('change', function() {
             let checkboxes = document.querySelectorAll('.check-item');
             checkboxes.forEach(chk => chk.checked = this.checked);
