@@ -107,17 +107,21 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
             box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
         }
 
+        /* --- UPDATE: TOMBOL AKSI MODERN --- */
         .btn-icon {
             width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 8px; border: 1px solid var(--border); background: white; color: var(--secondary);
-            transition: all 0.2s; cursor: pointer; text-decoration: none;
+            border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none;
+            color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .btn-icon:hover { background: var(--light); color: var(--primary); border-color: var(--primary); }
-        .btn-icon.delete:hover { color: #ef4444; border-color: #ef4444; background: #fef2f2; }
+        .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        
+        .btn-gray { background-color: #33c41cff; } .btn-gray:hover { background-color: #2cbb15ff; }
+        .btn-blue { background-color: #3b82f6; } .btn-blue:hover { background-color: #2563eb; }
+        .btn-red { background-color: #ef4444; } .btn-red:hover { background-color: #dc2626; }
+        /* ---------------------------------- */
         
         .stats-pill { background: #e0e7ff; color: #4338ca; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
 
-        /* Pagination Style */
         .pagination .page-link {
             border: none; margin: 0 3px; border-radius: 8px; color: var(--secondary); font-weight: 600; font-size: 0.9rem;
         }
@@ -136,7 +140,6 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
         <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
                 <h3 class="fw-bold m-0" style="letter-spacing: -0.5px;">Data Pelanggan</h3>
-                <!-- <p class="text-secondary m-0 small">Kelola database pelanggan Anda dengan mudah.</p> -->
             </div>
             <div>
                 <span class="stats-pill"><i class="bi bi-people-fill me-2"></i><?= $total_pelanggan ?> Total Pelanggan</span>
@@ -205,19 +208,17 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
                             <tbody>
                                 <?php
                                 // --- LOGIC PAGINATION ---
-                                $limit = 50; // Jumlah data per halaman
+                                $limit = 50;
                                 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
                                 $offset = ($page - 1) * $limit;
 
                                 $keyword = $_GET['q'] ?? '';
                                 $safe_key = pg_escape_string($conn, $keyword);
                                 
-                                // Query Total Data (untuk hitung halaman)
                                 $q_count = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) as total FROM pelanggan WHERE nama ILIKE '%$safe_key%' OR alamat ILIKE '%$safe_key%'"));
                                 $total_data = $q_count['total'];
                                 $total_pages = ceil($total_data / $limit);
 
-                                // Query Data dengan Limit & Offset
                                 $q = pg_query($conn, "SELECT * FROM pelanggan WHERE nama ILIKE '%$safe_key%' OR alamat ILIKE '%$safe_key%' ORDER BY nama ASC LIMIT $limit OFFSET $offset");
                                 
                                 if(pg_num_rows($q) > 0):
@@ -245,11 +246,11 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
                                     </td>
                                     <td class="text-end pe-4">
                                         <div class="d-flex justify-content-end gap-2">
-                                            <a href="riwayat.php?id=<?= $row['id_pelanggan'] ?>" class="btn-icon" title="Riwayat"><i class="bi bi-clock-history"></i></a>
-                                            <a href="index.php?edit=<?= $row['id_pelanggan'] ?>" class="btn-icon" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                                            <a href="riwayat.php?id=<?= $row['id_pelanggan'] ?>" class="btn-icon btn-gray" title="Riwayat"><i class="bi bi-clock-history"></i></a>
+                                            <a href="index.php?edit=<?= $row['id_pelanggan'] ?>" class="btn-icon btn-blue" title="Edit"><i class="bi bi-pencil-square"></i></a>
                                             <a href="index.php?hapus=<?= $row['id_pelanggan'] ?>" 
                                                onclick="return confirm('Anda yakin menghapus pelanggan <?= $row['nama'] ?>?')" 
-                                               class="btn-icon delete" title="Hapus">
+                                               class="btn-icon btn-red" title="Hapus">
                                                <i class="bi bi-trash3"></i>
                                             </a>
                                         </div>

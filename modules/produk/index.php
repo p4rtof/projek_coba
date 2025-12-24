@@ -2,13 +2,26 @@
 include '../../config/koneksi.php';
 include '../../auth/auth.php';
 
-// --- LOGIC HAPUS ---
+// --- LOGIC HAPUS (DENGAN PROTEKSI DATA) ---
 if (isset($_GET['hapus'])) {
     $id = $_GET['hapus'];
-    // Hapus transaksi terkait dulu biar ga error FK
-    pg_query($conn, "DELETE FROM transaksi WHERE id_produk = '$id'"); 
-    pg_query($conn, "DELETE FROM produk WHERE id_produk = '$id'");
-    header("Location: index.php");
+
+    // 1. Cek dulu: Apakah produk ini ada di tabel transaksi?
+    $cek_transaksi = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE id_produk = '$id'"));
+
+    if ($cek_transaksi['total'] > 0) {
+        // JIKA SUDAH PERNAH DIPESAN: Tampilkan Peringatan & BATALKAN HAPUS
+        echo "<script>
+            alert('🚫 GAGAL MENGHAPUS!\\n\\nProduk ini tercatat dalam " . $cek_transaksi['total'] . " riwayat transaksi.\\nData tidak boleh dihapus demi keamanan laporan keuangan.');
+            window.location.href = 'index.php';
+        </script>";
+        exit(); 
+    } else {
+        // JIKA BELUM PERNAH DIPESAN: Aman untuk dihapus
+        pg_query($conn, "DELETE FROM produk WHERE id_produk = '$id'");
+        header("Location: index.php");
+        exit();
+    }
 }
 
 // --- LOGIC SIMPAN / EDIT ---
@@ -66,14 +79,10 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
         }
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); }
         
-        /* Card Styling */
         .card-modern {
             background: white; border: 1px solid white; border-radius: 16px;
             box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s;
         }
-        .card-modern:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); }
-
-        /* Form Elements */
         .form-label { font-size: 0.85rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.4rem; }
         .form-control-modern, .form-select-modern {
             border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
@@ -83,7 +92,6 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
             background-color: white; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); 
         }
 
-        /* Button Custom */
         .btn-modern {
             background: var(--primary); color: white; border: none; padding: 12px;
             border-radius: 10px; font-weight: 600; width: 100%; transition: all 0.2s;
@@ -91,39 +99,35 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
         }
         .btn-modern:hover { background: var(--primary-hover); transform: translateY(-2px); }
 
-        /* Table Styling */
         .table-custom { margin: 0; }
         .table-custom thead th {
             background: #f8fafc; color: var(--secondary); font-size: 0.75rem; font-weight: 700;
             text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 24px; border-bottom: 1px solid var(--border);
         }
         .table-custom tbody td { padding: 16px 24px; vertical-align: middle; font-size: 0.95rem; border-bottom: 1px solid var(--border); color: var(--dark); }
-        .table-custom tbody tr:hover { background-color: #f8fafc; }
-
-        /* Badges */
+        
         .badge-satuan { padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; }
         .badge-meter { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
         .badge-pcs { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 
-        /* Action Buttons */
+        /* TOMBOL AKSI KEREN */
         .btn-icon {
             width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 8px; border: 1px solid var(--border); background: white; color: var(--secondary);
-            transition: all 0.2s; cursor: pointer; text-decoration: none;
+            border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none;
+            color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .btn-icon:hover { background: var(--light); color: var(--primary); border-color: var(--primary); }
-        .btn-icon.delete:hover { color: #ef4444; border-color: #ef4444; background: #fef2f2; }
+        .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        .btn-blue { background-color: #3b82f6; } .btn-blue:hover { background-color: #2563eb; }
+        .btn-red { background-color: #ef4444; } .btn-red:hover { background-color: #dc2626; }
         
         .stats-pill { background: #e0e7ff; color: #4338ca; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
 
-        /* Pagination */
         .pagination .page-link {
             border: none; margin: 0 3px; border-radius: 8px; color: var(--secondary); font-weight: 600; font-size: 0.9rem;
         }
         .pagination .page-item.active .page-link {
             background-color: var(--primary); color: white; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
         }
-        .pagination .page-link:hover { background-color: var(--light); color: var(--primary); }
     </style>
 </head>
 <body>
@@ -135,7 +139,6 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
         <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
                 <h3 class="fw-bold m-0" style="letter-spacing: -0.5px;">Data Produk</h3>
-                <!-- <p class="text-secondary m-0 small">Kelola inventaris barang dan harga.</p> -->
             </div>
             <div>
                 <span class="stats-pill"><i class="bi bi-box-seam-fill me-2"></i><?= $total_produk ?> Total Item</span>
@@ -219,7 +222,6 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                             </thead>
                             <tbody>
                                 <?php 
-                                // --- PAGINATION & QUERY ---
                                 $limit = 10;
                                 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
                                 $offset = ($page - 1) * $limit;
@@ -227,12 +229,10 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                                 $keyword = $_GET['q'] ?? '';
                                 $safe_key = pg_escape_string($conn, $keyword);
                                 
-                                // Query Total
                                 $q_count = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) as total FROM produk WHERE nama_produk ILIKE '%$safe_key%'"));
                                 $total_data = $q_count['total'];
                                 $total_pages = ceil($total_data / $limit);
 
-                                // Query Data
                                 $q_tampil = "SELECT * FROM produk WHERE nama_produk ILIKE '%$safe_key%' ORDER BY nama_produk ASC LIMIT $limit OFFSET $offset";
                                 $data_produk = pg_query($conn, $q_tampil);
 
@@ -262,9 +262,14 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                                     <td class="fw-bold text-dark">Rp <?= number_format($row['harga'], 0, ',', '.') ?></td>
 
                                     <td class="text-end pe-4">
-                                        <div class="d-flex justify-content-end gap-1">
-                                            <a href="index.php?edit=<?= $row['id_produk'] ?>" class="btn-icon" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                                            <a href="index.php?hapus=<?= $row['id_produk'] ?>" onclick="return confirm('Yakin hapus produk ini?')" class="btn-icon delete" title="Hapus"><i class="bi bi-trash3"></i></a>
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <a href="index.php?edit=<?= $row['id_produk'] ?>" class="btn-icon btn-blue" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                                            
+                                            <a href="index.php?hapus=<?= $row['id_produk'] ?>" 
+                                               onclick="return confirm('⚠️ PERHATIAN!\n\nApakah Anda yakin ingin menghapus produk ini?\n\nCatatan: Produk TIDAK AKAN TERHAPUS jika masih terdaftar dalam riwayat transaksi pelanggan.')" 
+                                               class="btn-icon btn-red" title="Hapus">
+                                                <i class="bi bi-trash3"></i>
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
@@ -285,13 +290,11 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                             <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
                                 <a class="page-link" href="?page=<?= $page-1 ?>&q=<?= $keyword ?>"><i class="bi bi-chevron-left"></i></a>
                             </li>
-                            
                             <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                                 <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
                                     <a class="page-link" href="?page=<?= $i ?>&q=<?= $keyword ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
-
                             <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
                                 <a class="page-link" href="?page=<?= $page+1 ?>&q=<?= $keyword ?>"><i class="bi bi-chevron-right"></i></a>
                             </li>

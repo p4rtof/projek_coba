@@ -100,13 +100,20 @@ $total_bank = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM bank
             box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2);
         }
 
+        /* --- UPDATE TOMBOL AKSI KEREN --- */
         .btn-icon {
             width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 8px; border: 1px solid var(--border); background: white; color: var(--secondary);
-            transition: all 0.2s; cursor: pointer; text-decoration: none;
+            border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none;
+            color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .btn-icon:hover { background: var(--light); color: var(--primary); border-color: var(--primary); }
-        .btn-icon.delete:hover { color: #ef4444; border-color: #ef4444; background: #fef2f2; }
+        .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        
+        .btn-blue { background-color: #3b82f6; } 
+        .btn-blue:hover { background-color: #2563eb; }
+        
+        .btn-red { background-color: #ef4444; } 
+        .btn-red:hover { background-color: #dc2626; }
+        /* -------------------------------- */
         
         .stats-pill { background: #e0e7ff; color: #4338ca; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
     </style>
@@ -212,13 +219,13 @@ $total_bank = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM bank
 
                                         <td class="text-end pe-4">
                                             <div class="d-flex justify-content-end gap-2">
-                                                <a href="index.php?edit=<?= $r['id_bank'] ?>" class="btn-icon" title="Edit Data">
+                                                <a href="index.php?edit=<?= $r['id_bank'] ?>" class="btn-icon btn-blue" title="Edit Data">
                                                     <i class="bi bi-pencil-square"></i>
                                                 </a>
                                                 
                                                 <a href="index.php?hapus=<?= $r['id_bank'] ?>" 
                                                    onclick="return confirm('Yakin hapus rekening <?= $r['nama_bank'] ?>?')" 
-                                                   class="btn-icon delete" title="Hapus">
+                                                   class="btn-icon btn-red" title="Hapus">
                                                     <i class="bi bi-trash3"></i>
                                                 </a>
                                             </div>

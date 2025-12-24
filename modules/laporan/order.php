@@ -37,7 +37,7 @@ $total_data = pg_num_rows($q);
 
     <style>
         :root {
-            --primary: #E0E7FF;
+            --primary: #726aff39;
             --primary-hover: #4338ca;
             --secondary: #64748b;
             --dark: #0f172a;
@@ -79,19 +79,23 @@ $total_data = pg_num_rows($q);
         .table-custom tbody tr:hover { background-color: #f8fafc; }
 
         /* Status Badges */
-        .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+        .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
         .bg-soft-success { background: #dcfce7; color: #166534; }
         .bg-soft-danger { background: #fee2e2; color: #991b1b; }
         .bg-soft-warning { background: #fef3c7; color: #92400e; }
         .bg-soft-info { background: #e0f2fe; color: #075985; }
 
-        /* Button Icon */
+        /* --- UPDATE TOMBOL AKSI KEREN (SAMA DENGAN DASHBOARD) --- */
         .btn-icon {
             width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 8px; border: 1px solid var(--border); background: white; color: var(--secondary);
-            transition: all 0.2s; text-decoration: none;
+            border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none;
+            color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .btn-icon:hover { background: var(--light); color: var(--primary); border-color: var(--primary); }
+        .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        
+        .btn-gray { background-color: #64748b; } 
+        .btn-gray:hover { background-color: #475569; }
+        /* -------------------------------------------------------- */
         
         .stats-pill { background: #e0e7ff; color: #4338ca; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
     </style>
@@ -122,7 +126,7 @@ $total_data = pg_num_rows($q);
                 </a>
             </div>
             
-            <button onclick="window.print()" class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-none d-md-block">
+            <button onclick="window.print()" class="btn btn-sm btn-dark rounded-pill px-3 d-none d-md-block shadow-sm fw-bold">
                 <i class="bi bi-printer me-2"></i> Cetak Laporan
             </button>
         </div>
@@ -180,7 +184,7 @@ $total_data = pg_num_rows($q);
                             </td>
                             
                             <td class="text-end pe-4">
-                                <a href="../transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon" title="Cetak Invoice" target="_blank">
+                                <a href="../transaksi/invoice.php?item_id=<?= $r['id'] ?>" class="btn-icon btn-gray" title="Cetak Invoice Item" target="_blank">
                                     <i class="bi bi-printer"></i>
                                 </a>
                             </td>
