@@ -8,17 +8,17 @@ $id_pelanggan = $_GET['id'];
 
 // --- LOGIC AKSI ---
 
-// 1. LUNASI PER ITEM (FIX: Update waktu_bayar = NOW())
+// 1. LUNASI PER ITEM (FIX: Hapus waktu_bayar karena kolom tidak ada)
 if (isset($_GET['lunasi_item']) && isset($_GET['uid'])) {
     $uid = $_GET['uid']; 
-    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas', waktu_bayar = NOW() WHERE id = '$uid'");
+    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id = '$uid'");
     header("Location: riwayat.php?id=" . $id_pelanggan); exit();
 }
 
-// 2. LUNASI SATU NOTA (FIX: Update waktu_bayar = NOW())
+// 2. LUNASI SATU NOTA (FIX: Hapus waktu_bayar karena kolom tidak ada)
 if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
     $id_trx = $_GET['id_trx']; 
-    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas', waktu_bayar = NOW() WHERE id_transaksi = '$id_trx'");
+    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id_trx'");
     header("Location: riwayat.php?id=" . $id_pelanggan); exit();
 }
 

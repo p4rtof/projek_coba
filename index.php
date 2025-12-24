@@ -4,7 +4,7 @@ include 'auth/auth.php';
 
 // --- LOGIC WIDGET DASHBOARD ---
 
-// 1. Hitung Status 'Proses' (Pengganti Pendapatan)
+// 1. Sedang Proses
 $q_proses = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE status_order = 'Proses'"));
 $jumlah_proses = $q_proses['total'] ?? 0;
 
@@ -18,18 +18,21 @@ $jumlah_utang = $q_utang['total'] ?? 0;
 
 // --- LOGIC AKSI ---
 
+// 1. LUNASI PER ITEM (FIX: Hapus waktu_bayar)
 if (isset($_GET['lunasi_item']) && isset($_GET['uid'])) {
     $uid = $_GET['uid']; 
-    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas', waktu_bayar = NOW() WHERE id = '$uid'");
+    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id = '$uid'");
     header("Location: index.php"); exit();
 }
 
+// 2. LUNASI SATU NOTA (FIX: Hapus waktu_bayar)
 if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
     $id_trx = $_GET['id_trx']; 
-    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas', waktu_bayar = NOW() WHERE id_transaksi = '$id_trx'");
+    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id_trx'");
     header("Location: index.php"); exit();
 }
 
+// 3. UPDATE PROGRESS
 if (isset($_GET['naik_status']) && isset($_GET['uid']) && isset($_GET['status'])) {
     $uid = $_GET['uid']; $st = $_GET['status'];
     $new = ($st == 'Proses') ? 'Selesai' : (($st == 'Selesai') ? 'Done' : '');
@@ -37,6 +40,7 @@ if (isset($_GET['naik_status']) && isset($_GET['uid']) && isset($_GET['status'])
     header("Location: index.php"); exit();
 }
 
+// 4. HAPUS
 if (isset($_GET['hapus']) && isset($_GET['uid'])) {
     $uid = $_GET['uid']; pg_query($conn, "DELETE FROM transaksi WHERE id = '$uid'");
     header("Location: index.php"); exit();
@@ -62,11 +66,24 @@ if (!empty($tanggal)) {
 
 $where_sql = count($conditions) > 0 ? "WHERE " . implode(" AND ", $conditions) : "";
 
-$query_count = "SELECT COUNT(*) AS total FROM transaksi t JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan JOIN produk pr ON t.id_produk=pr.id_produk $where_sql";
+// Hitung Total
+$query_count = "SELECT COUNT(*) AS total 
+                FROM transaksi t 
+                JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
+                JOIN produk pr ON t.id_produk=pr.id_produk 
+                $where_sql";
 $total_data = pg_fetch_assoc(pg_query($conn, $query_count))['total'];
 $total_pages = ceil($total_data / $limit);
 
-$query_main = "SELECT t.*, p.nama AS p_nama, pr.nama_produk FROM transaksi t JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan JOIN produk pr ON t.id_produk=pr.id_produk $where_sql ORDER BY t.waktu_order DESC, t.id_transaksi DESC LIMIT $limit OFFSET $offset";
+// Query Data
+$query_main = "SELECT t.*, p.nama AS p_nama, pr.nama_produk 
+               FROM transaksi t 
+               JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
+               JOIN produk pr ON t.id_produk=pr.id_produk 
+               $where_sql
+               ORDER BY t.waktu_order DESC, t.id_transaksi DESC 
+               LIMIT $limit OFFSET $offset";
+
 $q_transaksi = pg_query($conn, $query_main);
 ?>
 
@@ -84,7 +101,7 @@ $q_transaksi = pg_query($conn, $query_main);
         .card-modern { background: white; border: 1px solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: all 0.2s; height: 100%; }
         .card-modern:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
         .icon-box-stat { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .icon-blue { background: #FEF3C7; color: #92400E; } .icon-green { background: #dcfce7; color: #166534; } .icon-orange { background: #ffdfd5ff; color: #b32606ff; }
+        .icon-blue { background: #e0e7ff; color: #4338ca; } .icon-green { background: #dcfce7; color: #166534; } .icon-orange { background: #ffedd5; color: #9a3412; }
         .form-control-modern { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--light); }
         .btn-modern { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
         .btn-modern:hover { background: var(--primary-hover); transform: translateY(-2px); color: white; }
@@ -128,7 +145,6 @@ $q_transaksi = pg_query($conn, $query_main);
                     <div class="icon-box-stat icon-blue"><i class="bi bi-hourglass-split"></i></div>
                 </div>
             </div>
-
             <div class="col-md-4">
                 <div class="card-modern p-4 d-flex align-items-center justify-content-between">
                     <div>
@@ -138,7 +154,6 @@ $q_transaksi = pg_query($conn, $query_main);
                     <div class="icon-box-stat icon-green"><i class="bi bi-bag-check-fill"></i></div>
                 </div>
             </div>
-
             <div class="col-md-4">
                 <div class="card-modern p-4 d-flex align-items-center justify-content-between">
                     <div>
@@ -232,17 +247,23 @@ $q_transaksi = pg_query($conn, $query_main);
                                     
                                     <td class="text-end pe-4 text-nowrap">
                                         <div class="d-flex justify-content-end gap-2">
+                                            
                                             <?php if ($r['status_pembayaran'] == 'Belum Lunas'): ?>
                                                 <div class="dropdown d-inline-block">
-                                                    <button class="btn-icon btn-green dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border:none;" title="Pelunasan"><i class="bi bi-check-lg"></i></button>
+                                                    <button class="btn-icon btn-green dropdown-toggle" type="button" data-bs-toggle="dropdown" style="border:none;" title="Pelunasan">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
                                                     <ul class="dropdown-menu shadow-sm border-0">
                                                         <li><a class="dropdown-item" href="index.php?lunasi_item=true&uid=<?= $r['id'] ?>" onclick="return confirm('Lunasi ITEM ini saja?')">Lunasi Item Ini</a></li>
                                                         <li><a class="dropdown-item" href="index.php?lunasi_nota=true&id_trx=<?= $r['id_transaksi'] ?>" onclick="return confirm('Lunasi SEMUA di nota ini?')">Lunasi Satu Nota</a></li>
                                                     </ul>
                                                 </div>
                                             <?php endif; ?>
+
                                             <a href="modules/transaksi/edit.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-blue" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                                            
                                             <a href="modules/transaksi/invoice.php?item_id=<?= $r['id'] ?>" class="btn-icon btn-gray" title="Print Item Ini"><i class="bi bi-printer"></i></a>
+                                            
                                             <a href="index.php?hapus=true&uid=<?= $r['id'] ?>" onclick="return confirm('Hapus item ini?')" class="btn-icon btn-red" title="Hapus"><i class="bi bi-trash3"></i></a>
                                         </div>
                                     </td>
@@ -263,13 +284,6 @@ $q_transaksi = pg_query($conn, $query_main);
             <nav>
                 <ul class="pagination mb-0 me-2">
                     <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page-1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-left"></i></a></li>
-                    
-                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                        <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
-                            <a class="page-link" href="?page=<?= $i ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><?= $i ?></a>
-                        </li>
-                    <?php endfor; ?>
-
                     <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page+1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-right"></i></a></li>
                 </ul>
             </nav>
