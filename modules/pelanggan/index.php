@@ -72,7 +72,7 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
         .avatar-circle { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 16px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2); }
         .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none; color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
-        .btn-gray { background-color: #64748b; } .btn-blue { background-color: #3b82f6; } .btn-red { background-color: #ef4444; }
+        .btn-gray { background-color: #38be4eff; } .btn-blue { background-color: #3b82f6; } .btn-red { background-color: #ef4444; }
         .stats-pill { background: #e0e7ff; color: #4338ca; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
 
         /* --- CSS PAGINATION BARU (ANIMASI) --- */

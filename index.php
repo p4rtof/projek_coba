@@ -149,7 +149,7 @@ $q_transaksi = pg_query($conn, $query_main);
                         <div class="position-relative flex-grow-1"><input type="text" name="q" class="form-control form-control-modern" placeholder="Cari Transaksi..." value="<?= $keyword ?>"></div>
                         <button type="submit" class="btn btn-light border" style="border-radius: 10px;"><i class="bi bi-search"></i></button>
                     </form>
-                    <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2" style="border-radius: 10px;"><i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span></button>
+                    <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2" style="border-radius: 10px;"><i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Print Invoice</span></button>
                     <a href="modules/transaksi/keranjang.php" class="btn btn-modern d-flex align-items-center gap-2 shadow-sm px-4 py-2" style="background-color: #4f46e5; color: white;"><i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline fw-bold">Buat Transaksi Baru</span></a>
                 </div>
             </div>
@@ -158,7 +158,7 @@ $q_transaksi = pg_query($conn, $query_main);
         <form action="modules/transaksi/invoice.php" method="POST" id="formCetakInvoice">
             <div class="card-modern overflow-hidden">
                 <div id="toolbarCetak" class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between" style="display:none;">
-                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i> <span>Mode Cetak Aktif: Centang transaksi yang ingin digabung.</span></div>
+                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i> <span>Mode Print Invoice: Centang satu ID, semua item dengan ID sama otomatis terpilih.</span></div>
                     <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i class="bi bi-printer me-2"></i>PRINT SEKARANG</button>
                 </div>
 
@@ -228,7 +228,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                             <?php endif; ?>
                                             <a href="modules/transaksi/edit.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-blue" title="Edit"><i class="bi bi-pencil-square"></i></a>
                                             <a href="modules/transaksi/invoice.php?item_id=<?= $r['id'] ?>" class="btn-icon btn-gray" title="Print Item Ini"><i class="bi bi-printer"></i></a>
-                                            <a href="index.php?hapus=true&uid=<?= $r['id'] ?>" onclick="return confirm('Hapus item ini?')" class="btn-icon btn-red" title="Hapus"><i class="bi bi-trash3"></i></a>
+                                            <a href="index.php?hapus=true&uid=<?= $r['id'] ?>" onclick="return confirm('⛔⛔⛔ PERHATIAN!\n\nApakah Anda yakin ingin menghapus TRANSAKSI ini?')" class="btn-icon btn-red" title="Hapus"><i class="bi bi-trash3"></i></a>
                                         </div>
                                     </td>
                                 </tr>
