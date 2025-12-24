@@ -32,7 +32,7 @@ $q_pelanggan = pg_query($conn, "SELECT * FROM pelanggan WHERE id_pelanggan = '$i
 $p = pg_fetch_assoc($q_pelanggan);
 if (!$p) { echo "<script>alert('Pelanggan tidak ditemukan!'); window.location.href='index.php';</script>"; exit(); }
 
-// --- PERSIAPAN NOMOR WA ---
+// --- PERSIAPAN NOMOR WA (Untuk info pill saja) ---
 $hp_display = $p['hp'] ?? '-';
 $hp_link = preg_replace('/^0/', '62', preg_replace('/[^0-9]/', '', $hp_display));
 
@@ -59,27 +59,32 @@ $total_riwayat = pg_num_rows($q_riwayat);
     <style>
         :root { --primary: #4f46e5; --secondary: #64748b; --dark: #0f172a; --light: #f8fafc; --border: #e2e8f0; --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); }
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); }
+        
         /* FIXED: Added position relative */
         .card-modern { background: white; border: 1px solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s; height: 100%; overflow: hidden; position: relative; }
+        
         .customer-header h1 { font-weight: 800; letter-spacing: -1px; color: var(--dark); }
         .info-pill { background: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 50px; font-size: 0.9rem; color: var(--secondary); display: inline-flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; transition: all 0.2s ease; }
         a.info-pill:hover { background-color: #dcfce7; border-color: #86efac; color: #166534; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
         .icon-box-stat { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
         .icon-blue { background: #e0e7ff; color: #4338ca; } .icon-green { background: #dcfce7; color: #166534; } .icon-orange { background: #ffedd5; color: #9a3412; }
+        
         .btn-modern { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
         .btn-modern:hover { background: #4338ca; transform: translateY(-2px); color: white; }
+        
         /* FIXED: Added relative & z-index */
         .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none; color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; z-index: 10; }
         .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
         .btn-green { background: #11cf57; } .btn-blue { background: #3b83f6; } .btn-gray { background: #64748b; } .btn-red { background: #ef4444; }
+        
         .table-custom th { background: #f8fafc; color: var(--secondary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 16px 24px; }
         .table-custom td { padding: 16px 24px; vertical-align: middle; border-bottom: 1px solid var(--border); }
+        
         /* FIXED: Added relative & z-index */
         .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; position: relative; z-index: 10; }
         .bg-soft-success { background: #dcfce7; color: #166534; } .bg-soft-danger { background: #fee2e2; color: #991b1b; } .bg-soft-warning { background: #fef3c7; color: #92400e; } .bg-soft-info { background: #e0f2fe; color: #075985; }
         .form-control-modern { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--light); }
-        
-        /* Dropdown Minimalis */
         .dropdown-item { font-size: 0.9rem; padding: 8px 16px; color: var(--secondary); }
         .dropdown-item:hover { background-color: var(--light); color: var(--primary); }
     </style>
@@ -109,27 +114,11 @@ $total_riwayat = pg_num_rows($q_riwayat);
                         <div class="info-pill text-dark"><i class="bi bi-geo-alt-fill text-danger"></i> <?= $p['alamat'] ?? '-' ?></div>
                     </div>
                 </div>
-                <div class="col-md-5 mt-3 mt-md-0">
-                    <div class="card-modern p-3 bg-white border shadow-sm">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center">
-                                <div class="icon-box-stat bg-success bg-opacity-10 text-success me-3">
-                                    <i class="bi bi-whatsapp"></i>
-                                </div>
-                                <div>
-                                    <small class="text-secondary fw-bold text-uppercase" style="font-size: 0.65rem;">Hubungi Pelanggan</small>
-                                    <div>
-                                        <a href="https://wa.me/<?= $hp_link ?>" target="_blank" class="text-decoration-none fw-bold text-dark stretched-link">
-                                            Chat WhatsApp <i class="bi bi-arrow-right ms-1 small"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <a href="../transaksi/keranjang.php?id_pelanggan=<?= $id_pelanggan ?>" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" style="position: relative; z-index: 2;">
-                                <i class="bi bi-plus-lg"></i> Order
-                            </a>
-                        </div>
-                    </div>
+                
+                <div class="col-md-5 mt-3 mt-md-0 text-md-end">
+                    <a href="../transaksi/keranjang.php?id_pelanggan=<?= $id_pelanggan ?>" class="btn btn-modern d-inline-flex align-items-center gap-2 py-3 px-4 shadow-sm" style="width: auto;">
+                        <i class="bi bi-plus-lg fs-5"></i> <span>Buat Order Baru</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -150,13 +139,13 @@ $total_riwayat = pg_num_rows($q_riwayat);
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2"><i class="bi bi-clock-history text-primary fs-5"></i><h5 class="fw-bold m-0">Riwayat Transaksi</h5></div>
                 <div class="d-flex gap-2 w-95 w-md-auto justify-content-end align-items-center">
-                    <form method="GET" class="d-flex gap-2 w-100 w-md-auto">
+                    <form method="GET" class="d-flex gap-2 w-90 w-md-auto">
                         <input type="hidden" name="id" value="<?= $id_pelanggan ?>">
                         <div class="position-relative flex-grow-1"><input type="text" name="q" class="form-control form-control-modern" placeholder="Cari ID / Produk..." value="<?= $keyword ?>"></div>
                         <button type="submit" class="btn btn-light border" style="border-radius: 10px;"><i class="bi bi-search"></i></button>
                     </form>
                     <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2" style="border-radius: 10px;">
-                        <i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span>
+                        <i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold"> Print Invoice</span>
                     </button>
                 </div>
             </div>
@@ -165,7 +154,7 @@ $total_riwayat = pg_num_rows($q_riwayat);
         <form action="../transaksi/invoice.php" method="POST" target="_blank">
             <div class="card-modern overflow-hidden">
                 <div id="toolbarCetak" class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between" style="display:none;">
-                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i><span>Mode Cetak: Centang satu ID, semua item dengan ID sama otomatis terpilih.</span></div>
+                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i><span>Mode Print Invoice: Centang satu ID, semua item dengan ID sama otomatis terpilih.</span></div>
                     <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i class="bi bi-printer me-2"></i>PRINT SEKARANG</button>
                 </div>
 
@@ -282,7 +271,7 @@ $total_riwayat = pg_num_rows($q_riwayat);
             } else {
                 colsCheckbox.forEach(el => el.style.display = 'none');
                 toolbarCetak.style.display = 'none';
-                btnToggle.innerHTML = '<i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span>';
+                btnToggle.innerHTML = '<i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold"> Print Invoice</span>';
                 btnToggle.classList.replace('btn-light', 'btn-dark');
                 btnToggle.classList.remove('text-danger', 'border');
             }
@@ -291,10 +280,12 @@ $total_riwayat = pg_num_rows($q_riwayat);
         const checkboxes = document.querySelectorAll('.check-item');
         checkboxes.forEach(box => {
             box.addEventListener('change', function() {
-                const idToMatch = this.value; 
+                const idToMatch = this.value;
                 const isChecked = this.checked;
                 checkboxes.forEach(otherBox => {
-                    if (otherBox.value === idToMatch) otherBox.checked = isChecked;
+                    if (otherBox.value === idToMatch) {
+                        otherBox.checked = isChecked;
+                    }
                 });
             });
         });

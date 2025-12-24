@@ -2,6 +2,9 @@
 include '../../config/koneksi.php';
 include '../../auth/auth.php';
 
+// --- SET ZONA WAKTU KE WIB (ASIA/JAKARTA) ---
+date_default_timezone_set('Asia/Jakarta'); 
+
 // TANGKAP ID PELANGGAN DARI URL (AUTO-SELECT)
 $selected_pelanggan = $_GET['id_pelanggan'] ?? '';
 
@@ -18,6 +21,8 @@ function generateNewId($conn, $table, $prefix, $id_column)
 if (isset($_POST['simpan_transaksi'])) {
     $pelanggan_id = $_POST['pelanggan_id'];
     $tgl_input = $_POST['tgl_input'];
+    
+    // JAM OTOMATIS MENGIKUTI WAKTU WIB (KARENA SETTING DI ATAS)
     $jam_sekarang = date('H:i:s');
     $waktu_fix = $tgl_input . ' ' . $jam_sekarang;
 
@@ -441,7 +446,7 @@ if (isset($_POST['simpan_transaksi'])) {
                                                         </div>
                                                     </label>
                                                 </div>
-                                            <?php
+                                                <?php
                                             }
                                             ?>
                                         </div>
@@ -470,8 +475,8 @@ if (isset($_POST['simpan_transaksi'])) {
                                         <label class="radio-card-label label-hutang" for="status_hutang">
                                             <i class="bi bi-hourglass-split radio-icon"></i>
                                             <div>
-                                                <div class="fw-bold small">BELUM</div>
-                                                <div class="small opacity-75" style="font-size: 0.7rem;">Utang</div>
+                                                <div class="fw-bold small">BELUM LUNAS</div>
+                                                <div class="small opacity-75" style="font-size: 0.7rem;">Hutang</div>
                                             </div>
                                         </label>
                                     </div>
@@ -639,7 +644,10 @@ if (isset($_POST['simpan_transaksi'])) {
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            cekJenisProduk();
+            // Perbaiki pemanggilan fungsi agar sesuai dengan definisi di atas
+            if (typeof cekProduk === "function") {
+                cekProduk(); 
+            }
             if (document.querySelector('input[name="metode_pembayaran"]:checked')) {
                 cekMetode();
             }
