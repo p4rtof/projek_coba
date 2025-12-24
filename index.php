@@ -102,6 +102,25 @@ $q_transaksi = pg_query($conn, $query_main);
         .page-item.active .page-link { background: var(--primary); color: white; }
         .dropdown-item { font-size: 0.9rem; padding: 8px 16px; color: var(--secondary); }
         .dropdown-item:hover { background-color: var(--light); color: var(--primary); }
+
+        /* --- CSS PAGINATION BARU (ANIMASI) --- */
+        .pagination .page-link {
+            border: none; margin: 0 3px; border-radius: 8px; 
+            color: var(--secondary); font-weight: 600; font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary); color: white; 
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+            transform: translateY(-1px);
+        }
+        .pagination .page-link:hover { 
+            background-color: var(--light); color: var(--primary); 
+            transform: translateY(-1px);
+        }
+        .pagination .page-item.disabled .page-link {
+            background-color: transparent; color: #cbd5e1;
+        }
     </style>
 </head>
 <body>
@@ -130,7 +149,7 @@ $q_transaksi = pg_query($conn, $query_main);
                         <div class="position-relative flex-grow-1"><input type="text" name="q" class="form-control form-control-modern" placeholder="Cari Transaksi..." value="<?= $keyword ?>"></div>
                         <button type="submit" class="btn btn-light border" style="border-radius: 10px;"><i class="bi bi-search"></i></button>
                     </form>
-                    <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2" style="border-radius: 10px;"><i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold"> Print Invoice</span></button>
+                    <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2" style="border-radius: 10px;"><i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span></button>
                     <a href="modules/transaksi/keranjang.php" class="btn btn-modern d-flex align-items-center gap-2 shadow-sm px-4 py-2" style="background-color: #4f46e5; color: white;"><i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline fw-bold">Buat Transaksi Baru</span></a>
                 </div>
             </div>
@@ -139,7 +158,7 @@ $q_transaksi = pg_query($conn, $query_main);
         <form action="modules/transaksi/invoice.php" method="POST" id="formCetakInvoice">
             <div class="card-modern overflow-hidden">
                 <div id="toolbarCetak" class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between" style="display:none;">
-                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i> <span>Mode Print Invoice: Centang satu ID, semua item dengan ID sama otomatis terpilih.</span></div>
+                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i> <span>Mode Cetak Aktif: Centang transaksi yang ingin digabung.</span></div>
                     <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i class="bi bi-printer me-2"></i>PRINT SEKARANG</button>
                 </div>
 
@@ -208,9 +227,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                                 </div>
                                             <?php endif; ?>
                                             <a href="modules/transaksi/edit.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-blue" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                                            
                                             <a href="modules/transaksi/invoice.php?item_id=<?= $r['id'] ?>" class="btn-icon btn-gray" title="Print Item Ini"><i class="bi bi-printer"></i></a>
-                                            
                                             <a href="index.php?hapus=true&uid=<?= $r['id'] ?>" onclick="return confirm('Hapus item ini?')" class="btn-icon btn-red" title="Hapus"><i class="bi bi-trash3"></i></a>
                                         </div>
                                     </td>
@@ -226,17 +243,29 @@ $q_transaksi = pg_query($conn, $query_main);
         </form>
 
         <?php if ($total_pages > 1): ?>
-        <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light rounded-bottom">
-            <small class="text-muted fw-bold ms-2">Halaman <?= $page ?> dari <?= $total_pages ?></small>
+        <div class="d-flex justify-content-between align-items-center mt-3 px-2">
+            <small class="text-muted">Halaman <?= $page ?> dari <?= $total_pages ?></small>
             <nav>
-                <ul class="pagination mb-0 me-2">
-                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page-1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-left"></i></a></li>
-                    <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page+1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-right"></i></a></li>
+                <ul class="pagination mb-0">
+                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $page-1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-left"></i></a>
+                    </li>
+                    
+                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                        <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                            <a class="page-link" href="?page=<?= $i ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><?= $i ?></a>
+                        </li>
+                    <?php endfor; ?>
+
+                    <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $page+1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-right"></i></a>
+                    </li>
                 </ul>
             </nav>
         </div>
         <?php endif; ?>
     </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const btnToggle = document.getElementById('btnToggleCetak');
@@ -246,7 +275,7 @@ $q_transaksi = pg_query($conn, $query_main);
         btnToggle.addEventListener('click', function() {
             isCetakMode = !isCetakMode;
             if (isCetakMode) { colsCheckbox.forEach(el => el.style.display = 'table-cell'); toolbarCetak.style.display = 'flex'; btnToggle.innerHTML = '<i class="bi bi-x-lg"></i> <span class="small fw-bold">Batal</span>'; btnToggle.classList.replace('btn-dark', 'btn-light'); btnToggle.classList.add('text-danger', 'border'); } 
-            else { colsCheckbox.forEach(el => el.style.display = 'none'); toolbarCetak.style.display = 'none'; btnToggle.innerHTML = '<i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold"> Print Invoice</span>'; btnToggle.classList.replace('btn-light', 'btn-dark'); btnToggle.classList.remove('text-danger', 'border'); }
+            else { colsCheckbox.forEach(el => el.style.display = 'none'); toolbarCetak.style.display = 'none'; btnToggle.innerHTML = '<i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span>'; btnToggle.classList.replace('btn-light', 'btn-dark'); btnToggle.classList.remove('text-danger', 'border'); }
         });
         const checkboxes = document.querySelectorAll('.check-item');
         checkboxes.forEach(box => { box.addEventListener('change', function() { const idToMatch = this.value; const isChecked = this.checked; checkboxes.forEach(otherBox => { if (otherBox.value === idToMatch) { otherBox.checked = isChecked; } }); }); });
