@@ -10,7 +10,7 @@ function generateNewId($conn, $table, $prefix, $id_column) {
     return $prefix . str_pad($new_id_num, 3, '0', STR_PAD_LEFT); 
 }
 
-// --- PROSES SIMPAN TRANSAKSI (BANYAK ITEM) ---
+// --- PROSES SIMPAN TRANSAKSI ---
 if (isset($_POST['proses_transaksi'])) {
     $pelanggan_id = $_POST['pelanggan_id'];
     $tgl_input    = $_POST['tgl_input'];
@@ -22,6 +22,7 @@ if (isset($_POST['proses_transaksi'])) {
     $id_bank      = ($metode == 'Transfer') ? $_POST['bank_id'] : 'NULL'; 
     $status_order = 'Proses';
 
+    // Validasi Keranjang
     if (!isset($_POST['produk_id'])) {
         echo "<script>alert('Keranjang masih kosong! Silakan tambah item dulu.'); window.history.back();</script>";
         exit;
@@ -32,22 +33,25 @@ if (isset($_POST['proses_transaksi'])) {
 
     $produk_ids = $_POST['produk_id']; 
     
+    // Loop Simpan Setiap Item
     foreach ($produk_ids as $key => $prod_id) {
         $jumlah  = $_POST['jumlah'][$key];
         $panjang = $_POST['panjang'][$key];
         $lebar   = $_POST['lebar'][$key];
         
-        // Cek Stok di Database (Validasi Terakhir)
+        // Ambil Data Produk (Stok & Harga)
         $cek_produk = pg_fetch_assoc(pg_query($conn, "SELECT harga, stok_bahan, jenis_satuan FROM produk WHERE id_produk = '$prod_id'"));
         $harga_base = $cek_produk['harga'];
         $jenis      = $cek_produk['jenis_satuan'];
         $stok_now   = $cek_produk['stok_bahan'];
 
+        // Validasi Stok
         if($stok_now < $jumlah) {
-            echo "<script>alert('Gagal! Stok produk berubah saat transaksi. Silakan ulangi.'); window.history.back();</script>";
+            echo "<script>alert('Gagal! Stok produk tidak mencukupi saat proses simpan.'); window.history.back();</script>";
             exit;
         }
 
+        // Hitung Total Item
         if ($jenis == 'Meter') {
             $harga_satuan_fix = $panjang * $lebar * $harga_base;
         } else {
@@ -56,14 +60,19 @@ if (isset($_POST['proses_transaksi'])) {
         }
         $total_harga_item = $harga_satuan_fix * $jumlah;
 
+        // Generate ID
         $id_transaksi_baru = generateNewId($conn, 'transaksi', 'T', 'id_transaksi');
         
+        // Insert DB
         $query = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, status_pembayaran, status_order, panjang, lebar, metode_pembayaran, id_bank) 
                   VALUES ('$id_transaksi_baru', '$pelanggan_id', '$prod_id', '$waktu_fix', '$jumlah', '$total_harga_item', '$status_bayar', '$status_order', '$panjang', '$lebar', '$metode', $id_bank)";
         
         if (pg_query($conn, $query)) {
+            // Kurangi Stok
             $stok_baru = $stok_now - $jumlah;
             pg_query($conn, "UPDATE produk SET stok_bahan = $stok_baru WHERE id_produk = '$prod_id'");
+            
+            // Simpan ID untuk dicetak
             $list_id_baru[] = $id_transaksi_baru;
         } else {
             $error_db = true;
@@ -71,17 +80,23 @@ if (isset($_POST['proses_transaksi'])) {
     }
 
     if (!$error_db) {
-        echo '<form id="redirectForm" action="invoice_gabungan.php" method="POST" target="_blank">';
+        // --- REDIRECT KE INVOICE.PHP ---
+        // Kita kirim ID menggunakan Form Hidden otomatis agar bisa POST banyak ID
+        echo '<form id="redirectForm" action="invoice.php" method="POST" target="_blank">';
         foreach($list_id_baru as $id) {
             echo '<input type="hidden" name="ids[]" value="'.$id.'">';
         }
         echo '</form>';
+        
         echo '<script>
+                // Submit form untuk buka invoice di tab baru
                 document.getElementById("redirectForm").submit();
-                setTimeout(function(){ window.location.href = "../../index.php"; }, 1000);
+                
+                // Redirect halaman ini kembali ke index/dashboard
+                setTimeout(function(){ window.location.href = "../../index.php"; }, 500);
               </script>';
     } else {
-        echo "Gagal menyimpan data.";
+        echo "Gagal menyimpan sebagian data.";
     }
 }
 ?>
@@ -89,7 +104,7 @@ if (isset($_POST['proses_transaksi'])) {
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>Buat Transaksi</title>
+    <title>Buat Transaksi Baru</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -134,7 +149,7 @@ if (isset($_POST['proses_transaksi'])) {
             color: white; padding: 15px 20px;
         }
 
-        /* --- STYLE RADIO BUTTON --- */
+        /* Radio Button Style */
         .radio-card-input { display: none; }
         .radio-card-label {
             display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
@@ -144,6 +159,7 @@ if (isset($_POST['proses_transaksi'])) {
             height: 100%; text-align: left;
         }
         .radio-card-label:hover { border-color: #cbd5e1; background: #f8fafc; transform: translateY(-1px); }
+        
         .radio-card-input:checked + .radio-card-label.label-lunas {
             border-color: #10b981; background-color: #ecfdf5; color: #059669; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
         }
@@ -155,6 +171,7 @@ if (isset($_POST['proses_transaksi'])) {
         }
         .radio-icon { font-size: 1.6rem; margin-right: 12px; margin-bottom: 0; line-height: 1; }
 
+        /* Table */
         .table-cart th { font-size: 0.75rem; text-transform: uppercase; color: #64748b; background: #f8fafc; border-bottom: 1px solid var(--border); }
         .table-cart td { vertical-align: middle; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
     </style>
@@ -175,6 +192,7 @@ if (isset($_POST['proses_transaksi'])) {
             </div>
 
             <div class="row g-4">
+                
                 <div class="col-lg-5">
                     
                     <div class="card-modern mb-3">
@@ -215,7 +233,6 @@ if (isset($_POST['proses_transaksi'])) {
                                 <select id="input_produk" class="form-select form-select-modern" onchange="cekProduk()">
                                     <option value="" data-harga="0" data-jenis="" data-stok="0">-- Pilih Produk --</option>
                                     <?php
-                                    // PENTING: Menambahkan kolom stok_bahan di query
                                     $qp = pg_query($conn, "SELECT id_produk, nama_produk, harga, jenis_satuan, stok_bahan FROM produk ORDER BY nama_produk ASC");
                                     while ($pr = pg_fetch_assoc($qp)) {
                                         echo "<option value='{$pr['id_produk']}' 
@@ -390,7 +407,6 @@ if (isset($_POST['proses_transaksi'])) {
             let stok  = parseInt(option.getAttribute('data-stok')) || 0;
             let areaInfo = document.getElementById('info_stok');
             
-            // Tampilkan Info Stok
             if (select.value !== "") {
                 if (stok > 0) {
                     areaInfo.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-box-seam me-1"></i> Stok Tersedia: <b>${stok}</b></span>`;
@@ -401,19 +417,16 @@ if (isset($_POST['proses_transaksi'])) {
                 areaInfo.innerHTML = "";
             }
 
-            // Atur Ukuran
             if (jenis === 'Meter') {
                 document.getElementById('area_ukuran').style.display = 'block';
             } else {
                 document.getElementById('area_ukuran').style.display = 'none';
             }
             
-            // Reset input qty & validasi
             document.getElementById('input_qty').value = 1;
             validasiStok();
         }
 
-        // FUNGSI PENTING: Validasi Stok Real-time
         function validasiStok() {
             let select = document.getElementById('input_produk');
             let qtyInput = document.getElementById('input_qty');
@@ -425,18 +438,14 @@ if (isset($_POST['proses_transaksi'])) {
 
             if (select.value !== "") {
                 if (qty > stok) {
-                    // JIKA STOK KURANG
                     qtyInput.classList.add('is-invalid');
-                    qtyInput.classList.remove('is-valid');
-                    infoStok.innerHTML = `<span class="badge bg-danger text-white"><i class="bi bi-exclamation-triangle-fill me-1"></i> Stok tidak cukup! Sisa: ${stok}</span>`;
-                    btnTambah.disabled = true; // KUNCI TOMBOL
+                    infoStok.innerHTML = `<span class="badge bg-danger text-white"><i class="bi bi-exclamation-triangle-fill me-1"></i> Stok Kurang! Sisa: ${stok}</span>`;
+                    btnTambah.disabled = true;
                     btnTambah.classList.add('opacity-50');
                 } else {
-                    // JIKA AMAN
                     qtyInput.classList.remove('is-invalid');
-                    qtyInput.classList.add('is-valid');
                     infoStok.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-box-seam me-1"></i> Stok Tersedia: <b>${stok}</b></span>`;
-                    btnTambah.disabled = false; // BUKA TOMBOL
+                    btnTambah.disabled = false;
                     btnTambah.classList.remove('opacity-50');
                 }
             }
@@ -477,7 +486,6 @@ if (isset($_POST['proses_transaksi'])) {
             let p = 1, l = 1;
             let detailText = "-";
 
-            // Hitung Subtotal
             let subtotal = 0;
             if (jenis === 'Meter') {
                 p = parseFloat(document.getElementById('input_p').value) || 1;
@@ -524,7 +532,6 @@ if (isset($_POST['proses_transaksi'])) {
             
             // Reset Input
             document.getElementById('input_qty').value = 1;
-            document.getElementById('input_qty').classList.remove('is-valid'); 
             if(document.getElementById('input_p')) document.getElementById('input_p').value = 1;
             if(document.getElementById('input_l')) document.getElementById('input_l').value = 1;
         }

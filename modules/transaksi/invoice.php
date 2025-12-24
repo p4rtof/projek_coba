@@ -2,13 +2,28 @@
 include '../../config/koneksi.php';
 include '../../auth/auth.php';
 
-if (!isset($_GET['id'])) {
-    // Arahkan kembali ke dashboard jika tidak ada ID
-    header("Location: ../../index.php"); 
-    exit();
+// --- LOGIKA MENANGKAP ID (SATU ATAU BANYAK) ---
+$ids_to_print = [];
+
+if (isset($_POST['ids']) && !empty($_POST['ids'])) {
+    // KASUS 1: Dari Keranjang (Banyak ID via POST)
+    $ids_to_print = $_POST['ids'];
+} elseif (isset($_GET['id']) && !empty($_GET['id'])) {
+    // KASUS 2: Dari Riwayat/Satuan (Satu ID via GET)
+    $ids_to_print = [$_GET['id']];
+} else {
+    echo "<script>alert('Data transaksi tidak ditemukan!'); window.location.href='../../index.php';</script>";
+    exit;
 }
 
-$id = $_GET['id'];
+// Escape string untuk keamanan database
+$ids_clean = array_map(function($id) use ($conn) {
+    return pg_escape_string($conn, $id);
+}, $ids_to_print);
+
+$ids_string = "'" . implode("','", $ids_clean) . "'";
+
+// --- QUERY DATA ---
 $query = "
     SELECT 
         t.*, 
@@ -19,26 +34,25 @@ $query = "
     JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
     JOIN produk pr ON t.id_produk=pr.id_produk 
     LEFT JOIN bank_akun b ON t.id_bank = b.id_bank
-    WHERE t.id_transaksi = '$id'
+    WHERE t.id_transaksi IN ($ids_string)
+    ORDER BY t.waktu_order ASC
 ";
 
-$q = pg_query($conn, $query);
+$result = pg_query($conn, $query);
 
-if ($q === false) {
-    die("Error Database: " . pg_last_error($conn));
-}
-
-$data = pg_fetch_assoc($q);
-
-if (!$data) {
+if (!$result || pg_num_rows($result) == 0) {
     die("Data tidak ditemukan.");
 }
+
+// Ambil data baris pertama untuk Info Pelanggan & Header (Asumsi 1 pelanggan sama)
+$first_row = pg_fetch_assoc($result);
+pg_result_seek($result, 0); // Kembalikan pointer agar bisa di-looping di tabel
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>Invoice <?= $data['id_transaksi'] ?></title> 
+    <title>Invoice Cetak</title> 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
@@ -84,26 +98,28 @@ if (!$data) {
                     </div>
                     <div class="text-end">
                         <h2 class="fw-bold text-dark mb-0">INVOICE</h2>
-                        <span class="text-muted fw-bold">#<?= $data['id_transaksi'] ?></span>
+                        <span class="text-muted fw-bold">
+                            <?= count($ids_to_print) > 1 ? '#GABUNGAN' : '#' . $first_row['id_transaksi'] ?>
+                        </span>
                     </div>
                 </div>
 
                 <div class="row mb-4">
                     <div class="col-6">
                         <small class="text-muted fw-bold text-uppercase">Ditagihkan Kepada:</small>
-                        <h6 class="fw-bold mb-1 mt-1"><?= $data['p_nama'] ?></h6>
+                        <h6 class="fw-bold mb-1 mt-1"><?= $first_row['p_nama'] ?></h6>
                         <div class="small text-muted">
-                            <?= $data['alamat'] ?><br>
-                            <?= $data['hp'] ?>
+                            <?= $first_row['alamat'] ?? '-' ?><br>
+                            <?= $first_row['hp'] ?? '-' ?>
                         </div>
                     </div>
                     <div class="col-6 text-end">
                         <small class="text-muted fw-bold text-uppercase">Detail Order:</small>
                         <div class="small mt-1">
-                            <span class="fw-bold">Tanggal:</span> <?= date('d/m/Y, H:i', strtotime($data['waktu_order'])) ?><br>
+                            <span class="fw-bold">Tanggal:</span> <?= date('d/m/Y, H:i', strtotime($first_row['waktu_order'])) ?><br>
                             <span class="fw-bold">Status:</span> 
-                            <span class="badge bg-<?= $data['status_pembayaran'] == 'Lunas' ? 'success' : 'danger' ?> text-uppercase" style="font-size: 0.7rem;">
-                                <?= $data['status_pembayaran'] ?>
+                            <span class="badge bg-<?= $first_row['status_pembayaran'] == 'Lunas' ? 'success' : 'danger' ?> text-uppercase" style="font-size: 0.7rem;">
+                                <?= $first_row['status_pembayaran'] ?>
                             </span>
                         </div>
                     </div>
@@ -117,12 +133,12 @@ if (!$data) {
                                     <small class="text-muted fw-bold text-uppercase d-block">Metode Pembayaran</small>
                                 </div>
                                 <div class="col">
-                                    <?php if (($data['metode_pembayaran'] ?? '') == 'Transfer'): ?>
-                                        <span><i class="bi bi-bank me-1"></i> Transfer Bank <strong><?= $data['nama_bank'] ?></strong></span>
+                                    <?php if (($first_row['metode_pembayaran'] ?? '') == 'Transfer'): ?>
+                                        <span><i class="bi bi-bank me-1"></i> Transfer Bank <strong><?= $first_row['nama_bank'] ?></strong></span>
                                         <span class="mx-2">|</span>
-                                        <span>No: <strong><?= $data['no_rekening'] ?></strong></span>
+                                        <span>No: <strong><?= $first_row['no_rekening'] ?></strong></span>
                                         <span class="mx-2">|</span>
-                                        <span class="text-muted fst-italic">a.n <?= $data['atas_nama'] ?></span>
+                                        <span class="text-muted fst-italic">a.n <?= $first_row['atas_nama'] ?></span>
                                     <?php else: ?>
                                         <span><i class="bi bi-cash me-1"></i> Tunai (Cash)</span>
                                     <?php endif; ?>
@@ -143,17 +159,27 @@ if (!$data) {
                             </tr>
                         </thead>
                         <tbody>
+                            <?php 
+                            $grand_total = 0;
+                            while($row = pg_fetch_assoc($result)): 
+                                $grand_total += $row['total_harga'];
+                            ?>
                             <tr>
                                 <td class="ps-3 py-3">
-                                    <span class="fw-bold text-dark"><?= $data['nama_produk'] ?></span>
-                                    <?php if($data['panjang'] > 0): ?>
-                                        <br><small class="text-muted fst-italic">Ukuran: <?= floatval($data['panjang']) ?>m x <?= floatval($data['lebar']) ?>m</small>
+                                    <span class="fw-bold text-dark"><?= $row['nama_produk'] ?></span>
+                                    <?php if(count($ids_to_print) > 1): ?>
+                                        <br><small class="text-muted" style="font-size: 0.75rem;">Ref: #<?= $row['id_transaksi'] ?></small>
+                                    <?php endif; ?>
+
+                                    <?php if($row['panjang'] > 0): ?>
+                                        <br><small class="text-muted fst-italic">Ukuran: <?= floatval($row['panjang']) ?>m x <?= floatval($row['lebar']) ?>m</small>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-center py-3"><?= number_format($data['jumlah']) ?></td>
-                                <td class="text-end py-3">Rp <?= number_format($data['harga_satuan'], 0, ',','.') ?></td>
-                                <td class="text-end pe-3 py-3 fw-bold">Rp <?= number_format($data['total_harga'], 0, ',','.') ?></td>
+                                <td class="text-center py-3"><?= number_format($row['jumlah']) ?></td>
+                                <td class="text-end py-3">Rp <?= number_format($row['harga_satuan'], 0, ',','.') ?></td>
+                                <td class="text-end pe-3 py-3 fw-bold">Rp <?= number_format($row['total_harga'], 0, ',','.') ?></td>
                             </tr>
+                            <?php endwhile; ?>
                         </tbody>
                     </table>
                 </div>
@@ -164,7 +190,7 @@ if (!$data) {
                     <div class="col-5">
                         <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-2">
                             <span class="fw-bold text-secondary">TOTAL TAGIHAN</span>
-                            <span class="fw-bold text-primary fs-5">Rp <?= number_format($data['total_harga'], 0, ',','.') ?></span>
+                            <span class="fw-bold text-primary fs-5">Rp <?= number_format($grand_total, 0, ',','.') ?></span>
                         </div>
 
                         <div class="text-center mt-4">

@@ -2,22 +2,21 @@
 include '../../config/koneksi.php';
 include '../../auth/auth.php';
 
-// 1. Cek apakah ada data ID yang dikirim
+// Cek data kiriman dari Keranjang
 if (!isset($_POST['ids']) || empty($_POST['ids'])) {
-    echo "<script>alert('Tidak ada data transaksi yang dipilih!'); window.close();</script>";
+    echo "Tidak ada data transaksi yang dipilih.";
     exit;
 }
 
 $ids = $_POST['ids'];
 
-// 2. Ubah Array ID menjadi String untuk Query SQL (contoh: 'T001','T002','T003')
-// Kita escape string dulu biar aman
+// Escape string untuk keamanan
 $ids_clean = array_map(function($id) use ($conn) {
     return pg_escape_string($conn, $id);
 }, $ids);
 $ids_string = "'" . implode("','", $ids_clean) . "'";
 
-// 3. Ambil Semua Data Transaksi berdasarkan ID tersebut
+// Query Ambil Semua Data Transaksi berdasarkan ID
 $query = "SELECT t.*, p.nama_produk, pel.nama as nama_pelanggan, pel.alamat, pel.no_hp 
           FROM transaksi t 
           JOIN produk p ON t.id_produk = p.id_produk 
@@ -27,16 +26,11 @@ $query = "SELECT t.*, p.nama_produk, pel.nama as nama_pelanggan, pel.alamat, pel
 
 $result = pg_query($conn, $query);
 
-if (pg_num_rows($result) == 0) {
-    echo "Data tidak ditemukan.";
-    exit;
-}
+if (pg_num_rows($result) == 0) { echo "Data tidak ditemukan."; exit; }
 
-// Ambil data baris pertama untuk Info Pelanggan (Asumsi 1 pelanggan sama)
+// Ambil info pelanggan dari baris pertama (karena 1 invoice = 1 pelanggan)
 $first_row = pg_fetch_assoc($result);
-
-// Kembalikan pointer data ke awal supaya bisa di-looping lagi di tabel
-pg_result_seek($result, 0); 
+pg_result_seek($result, 0); // Reset pointer
 ?>
 
 <!DOCTYPE html>
@@ -47,17 +41,16 @@ pg_result_seek($result, 0);
     <style>
         body { background: #f3f4f6; color: #333; font-family: 'Courier New', Courier, monospace; }
         .invoice-box {
-            max-width: 850px;
+            max-width: 800px;
             margin: 30px auto;
-            padding: 40px;
+            padding: 30px;
             border: 1px solid #eee;
             background: white;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
         }
-        .header-title { font-size: 24px; font-weight: bold; letter-spacing: 1px; }
-        .table-items thead { border-top: 2px dashed #333; border-bottom: 2px dashed #333; }
-        .table-items th { padding: 10px 0; font-size: 14px; text-transform: uppercase; }
-        .table-items td { padding: 12px 0; vertical-align: top; border-bottom: 1px solid #f0f0f0; }
+        .header { border-bottom: 2px dashed #333; padding-bottom: 20px; margin-bottom: 20px; }
+        .table-items th { border-bottom: 1px solid #ddd; padding: 10px 0; text-transform: uppercase; font-size: 0.9rem; }
+        .table-items td { padding: 10px 0; border-bottom: 1px solid #eee; }
         
         @media print {
             body { background: white; }
@@ -70,51 +63,38 @@ pg_result_seek($result, 0);
 
 <div class="invoice-box">
     
-    <div class="row mb-5 align-items-center">
-        <div class="col-7">
-            <h1 class="header-title mb-1">ZADDY PRINTING</h1>
-            <div class="small text-muted">
-                Jl. Percetakan Negara No. 123, Jakarta<br>
-                WA: 0812-3456-7890 | Email: admin@zaddy.com
-            </div>
+    <div class="header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="fw-bold m-0">ZADDY PRINTING</h4>
+            <small>Jl. Percetakan Negara No. 1, Jakarta</small><br>
+            <small>WA: 0812-3456-7890</small>
         </div>
-        <div class="col-5 text-end">
-            <h4 class="fw-bold text-uppercase mb-1">INVOICE</h4>
-            <div class="small text-muted">
-                Tgl Cetak: <?= date('d/m/Y H:i') ?><br>
-                <strong>GABUNGAN (<?= count($ids) ?> Item)</strong>
-            </div>
+        <div class="text-end">
+            <h5 class="fw-bold text-uppercase">INVOICE</h5>
+            <small><?= date('d/m/Y H:i') ?></small>
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="p-3 bg-light rounded border">
-                <table class="w-100">
-                    <tr>
-                        <td width="100" class="text-secondary small fw-bold text-uppercase">Kepada Yth:</td>
-                        <td class="fw-bold fs-5"><?= $first_row['nama_pelanggan'] ?></td>
-                    </tr>
-                    <tr>
-                        <td class="text-secondary small fw-bold text-uppercase">Telepon:</td>
-                        <td><?= $first_row['no_hp'] ?? '-' ?></td>
-                    </tr>
-                    <tr>
-                        <td class="text-secondary small fw-bold text-uppercase">Alamat:</td>
-                        <td><?= $first_row['alamat'] ?? '-' ?></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
+    <div class="mb-4">
+        <table class="table table-borderless table-sm w-auto">
+            <tr>
+                <td class="ps-0 text-secondary">Pelanggan</td>
+                <td class="fw-bold">: <?= $first_row['nama_pelanggan'] ?></td>
+            </tr>
+            <tr>
+                <td class="ps-0 text-secondary">Alamat</td>
+                <td>: <?= $first_row['alamat'] ?? '-' ?></td>
+            </tr>
+        </table>
     </div>
 
-    <table class="table table-items w-100 mb-4 table-borderless">
+    <table class="table table-items w-100 mb-4">
         <thead>
             <tr>
-                <th width="40%">Item / Produk</th>
-                <th width="20%" class="text-center">Ukuran</th>
-                <th width="10%" class="text-center">Qty</th>
-                <th width="30%" class="text-end">Subtotal</th>
+                <th>Item / Produk</th>
+                <th class="text-center">Ukuran</th>
+                <th class="text-center">Qty</th>
+                <th class="text-end">Total</th>
             </tr>
         </thead>
         <tbody>
@@ -123,61 +103,48 @@ pg_result_seek($result, 0);
             while($row = pg_fetch_assoc($result)): 
                 $grand_total += $row['total_harga'];
                 
-                // Format Ukuran
                 $ukuran = "-";
-                if($row['panjang'] > 0 && $row['lebar'] > 0) {
-                    $ukuran = floatval($row['panjang']) . " x " . floatval($row['lebar']) . " m";
-                }
+                if($row['panjang'] > 0) $ukuran = $row['panjang'] . " x " . $row['lebar'] . " m";
             ?>
             <tr>
                 <td>
                     <div class="fw-bold"><?= $row['nama_produk'] ?></div>
-                    <div class="small text-muted">No. Order: #<?= $row['id_transaksi'] ?></div>
+                    <div class="small text-muted" style="font-size: 0.75rem;">Ref: #<?= $row['id_transaksi'] ?></div>
                 </td>
-                <td class="text-center small text-secondary"><?= $ukuran ?></td>
-                <td class="text-center fw-bold"><?= $row['jumlah'] ?></td>
+                <td class="text-center small"><?= $ukuran ?></td>
+                <td class="text-center"><?= $row['jumlah'] ?></td>
                 <td class="text-end fw-bold">Rp <?= number_format($row['total_harga'], 0, ',', '.') ?></td>
             </tr>
             <?php endwhile; ?>
         </tbody>
-        <tfoot style="border-top: 2px dashed #333;">
+        <tfoot>
             <tr>
-                <td colspan="3" class="text-end py-4 fw-bold fs-5 text-uppercase">Total Tagihan</td>
-                <td class="text-end py-4 fw-bold fs-4 bg-light">Rp <?= number_format($grand_total, 0, ',', '.') ?></td>
+                <td colspan="3" class="text-end py-3 text-uppercase small">Grand Total</td>
+                <td class="text-end py-3 fs-5 fw-bold bg-light">Rp <?= number_format($grand_total, 0, ',', '.') ?></td>
             </tr>
         </tfoot>
     </table>
 
     <div class="row mt-5">
         <div class="col-7">
-            <div class="small text-muted mb-2">Info Pembayaran:</div>
-            <div class="border p-2 rounded small d-inline-block bg-white">
-                BCA: 123-456-789 (Zaddy Print)<br>
-                BRI: 987-654-321 (Zaddy Print)
+            <small class="text-muted d-block mb-2">Metode Pembayaran:</small>
+            <div class="border p-2 rounded small text-secondary d-inline-block">
+                BCA: 123-456-7890 (Zaddy Print)<br>
+                BRI: 987-654-3210 (Zaddy Print)
             </div>
-            
             <div class="mt-3">
                 Status: 
-                <?php if($first_row['status_pembayaran'] == 'Lunas'): ?>
-                    <span class="badge bg-success text-uppercase px-3">LUNAS</span>
-                <?php else: ?>
-                    <span class="badge bg-danger text-uppercase px-3">BELUM LUNAS</span>
-                <?php endif; ?>
+                <span class="badge bg-dark text-white text-uppercase"><?= $first_row['status_pembayaran'] ?></span>
             </div>
         </div>
         <div class="col-5 text-center d-flex flex-column justify-content-end">
-            <div style="height: 80px;"></div>
-            <div class="border-top border-dark w-75 mx-auto pt-2 fw-bold">Admin / Kasir</div>
+            <div style="height: 60px;"></div>
+            <p class="fw-bold text-decoration-underline mb-0">Admin Kasir</p>
         </div>
     </div>
 
-    <div class="no-print mt-5 text-center">
-        <button onclick="window.print()" class="btn btn-dark btn-lg rounded-pill shadow px-5">
-            <i class="bi bi-printer-fill me-2"></i> Cetak Invoice
-        </button>
-        <div class="mt-3">
-            <a href="../../index.php" class="text-secondary small text-decoration-none">Kembali ke Dashboard</a>
-        </div>
+    <div class="text-center mt-4 no-print">
+        <button onclick="window.print()" class="btn btn-dark w-100 rounded-pill"><i class="bi bi-printer me-2"></i> Cetak Invoice Gabungan</button>
     </div>
 
 </div>
