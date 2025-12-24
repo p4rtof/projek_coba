@@ -12,32 +12,37 @@ $jumlah_order = $q_order['total'] ?? 0;
 $q_utang = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE status_pembayaran = 'Belum Lunas'"));
 $jumlah_utang = $q_utang['total'] ?? 0;
 
-// --- LOGIC: LUNASI PER ITEM ---
+// --- LOGIC AKSI ---
+
+// 1. LUNASI PER ITEM
 if (isset($_GET['lunasi_item']) && isset($_GET['uid'])) {
     $uid = $_GET['uid']; 
     pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id = '$uid'");
     header("Location: index.php"); exit();
 }
 
-// --- LOGIC: LUNASI SATU NOTA ---
+// 2. LUNASI SATU NOTA
 if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
     $id_trx = $_GET['id_trx']; 
     pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id_trx'");
     header("Location: index.php"); exit();
 }
 
-// --- LOGIC: UPDATE STATUS ---
-if (isset($_GET['naik_status'])) {
-    $id_trx = $_GET['id'];
+// 3. UPDATE PROGRESS (TANPA KONFIRMASI)
+if (isset($_GET['naik_status']) && isset($_GET['uid']) && isset($_GET['status'])) {
+    $uid = $_GET['uid']; 
     $st = $_GET['status'];
     $new = ($st == 'Proses') ? 'Selesai' : (($st == 'Selesai') ? 'Done' : '');
-    if ($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id_transaksi = '$id_trx'"); 
+    
+    if ($new) {
+        pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id = '$uid'"); 
+    }
     header("Location: index.php"); exit();
 }
 
-// --- LOGIC: HAPUS ---
+// 4. HAPUS
 if (isset($_GET['hapus']) && isset($_GET['uid'])) {
-    $uid = $_GET['uid'];
+    $uid = $_GET['uid']; 
     pg_query($conn, "DELETE FROM transaksi WHERE id = '$uid'");
     header("Location: index.php"); exit();
 }
@@ -71,13 +76,13 @@ $query_count = "SELECT COUNT(*) AS total
 $total_data = pg_fetch_assoc(pg_query($conn, $query_count))['total'];
 $total_pages = ceil($total_data / $limit);
 
-// Query Data (Pastikan ambil kolom 'id')
+// Query Data (Ambil panjang & lebar dari t.*)
 $query_main = "SELECT t.*, p.nama AS p_nama, pr.nama_produk 
                FROM transaksi t 
                JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
                JOIN produk pr ON t.id_produk=pr.id_produk 
                $where_sql
-               ORDER BY t.id_transaksi DESC, t.waktu_order DESC
+               ORDER BY t.waktu_order DESC, t.id_transaksi DESC 
                LIMIT $limit OFFSET $offset";
 
 $q_transaksi = pg_query($conn, $query_main);
@@ -93,12 +98,8 @@ $q_transaksi = pg_query($conn, $query_main);
 
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --secondary: #64748b;
-            --dark: #0f172a;
-            --light: #f8fafc;
-            --border: #e2e8f0;
+            --primary: #4f46e5; --primary-hover: #4338ca; --secondary: #64748b;
+            --dark: #0f172a; --light: #f8fafc; --border: #e2e8f0;
             --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
         }
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); }
@@ -241,12 +242,17 @@ $q_transaksi = pg_query($conn, $query_main);
                                         </div>
                                     </td>
                                     
-                                    <td class="text-start fw-semibold text-dark" style="min-width: 150px; max-width: 200px;">
-                                        <?= $r['p_nama'] ?>
+                                    <td class="text-start" style="min-width: 150px; max-width: 200px;">
+                                        <div class="fw-semibold text-dark"><?= $r['p_nama'] ?></div>
                                     </td>
                                     
                                     <td class="text-start text-secondary" style="min-width: 150px; max-width: 250px;">
                                         <?= $r['nama_produk'] ?>
+                                        <?php if($r['panjang'] > 0): ?>
+                                            <div class="small fst-italic text-muted mt-1" style="font-size: 0.75rem;">
+                                                <i class="bi bi-rulers"></i> <?= (float)$r['panjang'] ?>m x <?= (float)$r['lebar'] ?>m
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                     
                                     <td class="text-nowrap"><span class="badge bg-light text-dark border"><?= $r['jumlah'] ?></span></td>
@@ -267,11 +273,15 @@ $q_transaksi = pg_query($conn, $query_main);
                                         if($st == 'Done'): ?>
                                             <span class="text-success fw-bold small"><i class="bi bi-check-all fs-5"></i> DONE</span>
                                         <?php elseif($st == 'Selesai'): ?>
-                                            <a href="index.php?naik_status=true&id=<?= $r['id_transaksi'] ?>&status=<?= $st ?>" 
-                                               class="badge badge-status bg-soft-info text-decoration-none">Siap Ambil <i class="bi bi-chevron-right"></i></a>
+                                            <a href="index.php?naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>" 
+                                               class="badge badge-status bg-soft-info text-decoration-none">
+                                               Siap Ambil <i class="bi bi-chevron-right"></i>
+                                            </a>
                                         <?php else: ?>
-                                            <a href="index.php?naik_status=true&id=<?= $r['id_transaksi'] ?>&status=<?= $st ?>" 
-                                               class="badge badge-status bg-soft-warning text-decoration-none">Proses <i class="bi bi-chevron-right"></i></a>
+                                            <a href="index.php?naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>" 
+                                               class="badge badge-status bg-soft-warning text-decoration-none">
+                                               Proses <i class="bi bi-chevron-right"></i>
+                                            </a>
                                         <?php endif; ?>
                                     </td>
                                     

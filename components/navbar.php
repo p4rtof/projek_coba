@@ -142,7 +142,7 @@
                     <a class="nav-link" href="/projek_coba/modules/produk/index.php">Produk</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/projek_coba/modules/bank/index.php">Bank</a>
+                    <a class="nav-link" href="/projek_coba/modules/bank/index.php">Pembayaran</a>
                 </li>
 <!-- 
                 <li class="nav-item">
