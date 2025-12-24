@@ -222,7 +222,7 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                             </thead>
                             <tbody>
                                 <?php 
-                                $limit = 10;
+                                $limit = 20;
                                 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
                                 $offset = ($page - 1) * $limit;
 

@@ -3,30 +3,40 @@ include 'config/koneksi.php';
 include 'auth/auth.php';
 
 // --- LOGIC WIDGET DASHBOARD ---
-$q_omset = pg_fetch_assoc(pg_query($conn, "SELECT SUM(total_harga) AS total FROM transaksi WHERE waktu_order::date = CURRENT_DATE AND status_pembayaran = 'Lunas'"));
-$omset_hari_ini = $q_omset['total'] ?? 0;
 
+// 1. Hitung Status 'Proses' (Pengganti Pendapatan)
+$q_proses = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE status_order = 'Proses'"));
+$jumlah_proses = $q_proses['total'] ?? 0;
+
+// 2. Order Masuk Hari Ini
 $q_order = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE waktu_order::date = CURRENT_DATE"));
 $jumlah_order = $q_order['total'] ?? 0;
 
+// 3. Belum Lunas
 $q_utang = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE status_pembayaran = 'Belum Lunas'"));
 $jumlah_utang = $q_utang['total'] ?? 0;
 
 // --- LOGIC AKSI ---
+
 if (isset($_GET['lunasi_item']) && isset($_GET['uid'])) {
-    $uid = $_GET['uid']; pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id = '$uid'");
+    $uid = $_GET['uid']; 
+    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas', waktu_bayar = NOW() WHERE id = '$uid'");
     header("Location: index.php"); exit();
 }
+
 if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
-    $id_trx = $_GET['id_trx']; pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id_trx'");
+    $id_trx = $_GET['id_trx']; 
+    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas', waktu_bayar = NOW() WHERE id_transaksi = '$id_trx'");
     header("Location: index.php"); exit();
 }
+
 if (isset($_GET['naik_status']) && isset($_GET['uid']) && isset($_GET['status'])) {
     $uid = $_GET['uid']; $st = $_GET['status'];
     $new = ($st == 'Proses') ? 'Selesai' : (($st == 'Selesai') ? 'Done' : '');
     if ($new) pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id = '$uid'"); 
     header("Location: index.php"); exit();
 }
+
 if (isset($_GET['hapus']) && isset($_GET['uid'])) {
     $uid = $_GET['uid']; pg_query($conn, "DELETE FROM transaksi WHERE id = '$uid'");
     header("Location: index.php"); exit();
@@ -52,24 +62,11 @@ if (!empty($tanggal)) {
 
 $where_sql = count($conditions) > 0 ? "WHERE " . implode(" AND ", $conditions) : "";
 
-// Hitung Total
-$query_count = "SELECT COUNT(*) AS total 
-                FROM transaksi t 
-                JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
-                JOIN produk pr ON t.id_produk=pr.id_produk 
-                $where_sql";
+$query_count = "SELECT COUNT(*) AS total FROM transaksi t JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan JOIN produk pr ON t.id_produk=pr.id_produk $where_sql";
 $total_data = pg_fetch_assoc(pg_query($conn, $query_count))['total'];
 $total_pages = ceil($total_data / $limit);
 
-// Query Data
-$query_main = "SELECT t.*, p.nama AS p_nama, pr.nama_produk 
-               FROM transaksi t 
-               JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
-               JOIN produk pr ON t.id_produk=pr.id_produk 
-               $where_sql
-               ORDER BY t.waktu_order DESC, t.id_transaksi DESC 
-               LIMIT $limit OFFSET $offset";
-
+$query_main = "SELECT t.*, p.nama AS p_nama, pr.nama_produk FROM transaksi t JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan JOIN produk pr ON t.id_produk=pr.id_produk $where_sql ORDER BY t.waktu_order DESC, t.id_transaksi DESC LIMIT $limit OFFSET $offset";
 $q_transaksi = pg_query($conn, $query_main);
 ?>
 
@@ -87,7 +84,7 @@ $q_transaksi = pg_query($conn, $query_main);
         .card-modern { background: white; border: 1px solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: all 0.2s; height: 100%; }
         .card-modern:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
         .icon-box-stat { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .icon-blue { background: #e0e7ff; color: #4338ca; } .icon-green { background: #dcfce7; color: #166534; } .icon-orange { background: #ffedd5; color: #9a3412; }
+        .icon-blue { background: #FEF3C7; color: #92400E; } .icon-green { background: #dcfce7; color: #166534; } .icon-orange { background: #ffdfd5ff; color: #b32606ff; }
         .form-control-modern { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--light); }
         .btn-modern { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
         .btn-modern:hover { background: var(--primary-hover); transform: translateY(-2px); color: white; }
@@ -102,25 +99,12 @@ $q_transaksi = pg_query($conn, $query_main);
         .page-item.active .page-link { background: var(--primary); color: white; }
         .dropdown-item { font-size: 0.9rem; padding: 8px 16px; color: var(--secondary); }
         .dropdown-item:hover { background-color: var(--light); color: var(--primary); }
-
-        /* --- CSS PAGINATION BARU (ANIMASI) --- */
-        .pagination .page-link {
-            border: none; margin: 0 3px; border-radius: 8px; 
-            color: var(--secondary); font-weight: 600; font-size: 0.9rem;
-            transition: all 0.2s ease;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: var(--primary); color: white; 
-            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
-            transform: translateY(-1px);
-        }
-        .pagination .page-link:hover { 
-            background-color: var(--light); color: var(--primary); 
-            transform: translateY(-1px);
-        }
-        .pagination .page-item.disabled .page-link {
-            background-color: transparent; color: #cbd5e1;
-        }
+        
+        /* Pagination */
+        .pagination .page-link { border: none; margin: 0 3px; border-radius: 8px; color: var(--secondary); font-weight: 600; font-size: 0.9rem; transition: all 0.2s ease; }
+        .pagination .page-item.active .page-link { background-color: var(--primary); color: white; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3); transform: translateY(-1px); }
+        .pagination .page-link:hover { background-color: var(--light); color: var(--primary); transform: translateY(-1px); }
+        .pagination .page-item.disabled .page-link { background-color: transparent; color: #cbd5e1; }
     </style>
 </head>
 <body>
@@ -135,9 +119,35 @@ $q_transaksi = pg_query($conn, $query_main);
         </div>
 
         <div class="row g-4 mb-4">
-            <div class="col-md-4"><div class="card-modern p-4 d-flex align-items-center justify-content-between"><div><div class="text-secondary fw-bold small text-uppercase mb-1">Pendapatan Hari Ini</div><h2 class="fw-bold m-0 text-dark">Rp <?= number_format($omset_hari_ini, 0, ',', '.') ?></h2></div><div class="icon-box-stat icon-blue"><i class="bi bi-wallet2"></i></div></div></div>
-            <div class="col-md-4"><div class="card-modern p-4 d-flex align-items-center justify-content-between"><div><div class="text-secondary fw-bold small text-uppercase mb-1">Order Masuk</div><h2 class="fw-bold m-0 text-dark"><?= $jumlah_order ?> <span class="fs-6 fw-normal text-secondary">Pesanan</span></h2></div><div class="icon-box-stat icon-green"><i class="bi bi-bag-check-fill"></i></div></div></div>
-            <div class="col-md-4"><div class="card-modern p-4 d-flex align-items-center justify-content-between"><div><div class="text-secondary fw-bold small text-uppercase mb-1">Belum Lunas</div><h2 class="fw-bold m-0 text-dark"><?= $jumlah_utang ?> <span class="fs-6 fw-normal text-secondary">Data</span></h2></div><div class="icon-box-stat icon-orange"><i class="bi bi-exclamation-triangle-fill"></i></div></div></div>
+            <div class="col-md-4">
+                <div class="card-modern p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-secondary fw-bold small text-uppercase mb-1">Sedang Proses</div>
+                        <h2 class="fw-bold m-0 text-dark"><?= $jumlah_proses ?> <span class="fs-6 fw-normal text-secondary">Pesanan</span></h2>
+                    </div>
+                    <div class="icon-box-stat icon-blue"><i class="bi bi-hourglass-split"></i></div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card-modern p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-secondary fw-bold small text-uppercase mb-1">Order Masuk</div>
+                        <h2 class="fw-bold m-0 text-dark"><?= $jumlah_order ?> <span class="fs-6 fw-normal text-secondary">Pesanan</span></h2>
+                    </div>
+                    <div class="icon-box-stat icon-green"><i class="bi bi-bag-check-fill"></i></div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card-modern p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-secondary fw-bold small text-uppercase mb-1">Belum Lunas</div>
+                        <h2 class="fw-bold m-0 text-dark"><?= $jumlah_utang ?> <span class="fs-6 fw-normal text-secondary">Data</span></h2>
+                    </div>
+                    <div class="icon-box-stat icon-orange"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                </div>
+            </div>
         </div>
 
         <div class="card-modern mb-4 p-3">
@@ -199,6 +209,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                     </td>
                                     <td class="text-nowrap"><span class="badge bg-light text-dark border"><?= $r['jumlah'] ?></span></td>
                                     <td class="fw-bold text-dark text-nowrap">Rp <?= number_format($r['total_harga'], 0, ',', '.') ?></td>
+                                    
                                     <td class="text-nowrap">
                                         <?php if($r['status_pembayaran'] == 'Lunas'): ?>
                                             <span class="badge badge-status bg-soft-success">Lunas</span>
@@ -206,8 +217,11 @@ $q_transaksi = pg_query($conn, $query_main);
                                             <span class="badge badge-status bg-soft-danger">Belum Lunas</span>
                                         <?php endif; ?>
                                     </td>
+                                    
                                     <td class="text-nowrap">
-                                        <?php $st = $r['status_order']; if($st == 'Done'): ?>
+                                        <?php 
+                                        $st = $r['status_order'];
+                                        if($st == 'Done'): ?>
                                             <span class="text-success fw-bold small"><i class="bi bi-check-all fs-5"></i> Selesai</span>
                                         <?php elseif($st == 'Selesai'): ?>
                                             <a href="index.php?naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>" class="badge badge-status bg-soft-info text-decoration-none">Siap Ambil <i class="bi bi-chevron-right"></i></a>
@@ -215,6 +229,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                             <a href="index.php?naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>" class="badge badge-status bg-soft-warning text-decoration-none">Proses <i class="bi bi-chevron-right"></i></a>
                                         <?php endif; ?>
                                     </td>
+                                    
                                     <td class="text-end pe-4 text-nowrap">
                                         <div class="d-flex justify-content-end gap-2">
                                             <?php if ($r['status_pembayaran'] == 'Belum Lunas'): ?>
@@ -228,7 +243,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                             <?php endif; ?>
                                             <a href="modules/transaksi/edit.php?id=<?= $r['id_transaksi'] ?>" class="btn-icon btn-blue" title="Edit"><i class="bi bi-pencil-square"></i></a>
                                             <a href="modules/transaksi/invoice.php?item_id=<?= $r['id'] ?>" class="btn-icon btn-gray" title="Print Item Ini"><i class="bi bi-printer"></i></a>
-                                            <a href="index.php?hapus=true&uid=<?= $r['id'] ?>" onclick="return confirm('⛔⛔⛔ PERHATIAN!\n\nApakah Anda yakin ingin menghapus TRANSAKSI ini?')" class="btn-icon btn-red" title="Hapus"><i class="bi bi-trash3"></i></a>
+                                            <a href="index.php?hapus=true&uid=<?= $r['id'] ?>" onclick="return confirm('Hapus item ini?')" class="btn-icon btn-red" title="Hapus"><i class="bi bi-trash3"></i></a>
                                         </div>
                                     </td>
                                 </tr>
@@ -243,13 +258,11 @@ $q_transaksi = pg_query($conn, $query_main);
         </form>
 
         <?php if ($total_pages > 1): ?>
-        <div class="d-flex justify-content-between align-items-center mt-3 px-2">
-            <small class="text-muted">Halaman <?= $page ?> dari <?= $total_pages ?></small>
+        <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light rounded-bottom">
+            <small class="text-muted fw-bold ms-2">Halaman <?= $page ?> dari <?= $total_pages ?></small>
             <nav>
-                <ul class="pagination mb-0">
-                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                        <a class="page-link" href="?page=<?= $page-1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-left"></i></a>
-                    </li>
+                <ul class="pagination mb-0 me-2">
+                    <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page-1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-left"></i></a></li>
                     
                     <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                         <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
@@ -257,29 +270,55 @@ $q_transaksi = pg_query($conn, $query_main);
                         </li>
                     <?php endfor; ?>
 
-                    <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
-                        <a class="page-link" href="?page=<?= $page+1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-right"></i></a>
-                    </li>
+                    <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>"><a class="page-link" href="?page=<?= $page+1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-right"></i></a></li>
                 </ul>
             </nav>
         </div>
         <?php endif; ?>
+
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const btnToggle = document.getElementById('btnToggleCetak');
         const toolbarCetak = document.getElementById('toolbarCetak');
         const colsCheckbox = document.querySelectorAll('.col-checkbox');
         let isCetakMode = false;
+
         btnToggle.addEventListener('click', function() {
             isCetakMode = !isCetakMode;
-            if (isCetakMode) { colsCheckbox.forEach(el => el.style.display = 'table-cell'); toolbarCetak.style.display = 'flex'; btnToggle.innerHTML = '<i class="bi bi-x-lg"></i> <span class="small fw-bold">Batal</span>'; btnToggle.classList.replace('btn-dark', 'btn-light'); btnToggle.classList.add('text-danger', 'border'); } 
-            else { colsCheckbox.forEach(el => el.style.display = 'none'); toolbarCetak.style.display = 'none'; btnToggle.innerHTML = '<i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span>'; btnToggle.classList.replace('btn-light', 'btn-dark'); btnToggle.classList.remove('text-danger', 'border'); }
+            if (isCetakMode) {
+                colsCheckbox.forEach(el => el.style.display = 'table-cell');
+                toolbarCetak.style.display = 'flex';
+                btnToggle.innerHTML = '<i class="bi bi-x-lg"></i> <span class="small fw-bold">Batal</span>';
+                btnToggle.classList.replace('btn-dark', 'btn-light');
+                btnToggle.classList.add('text-danger', 'border');
+            } else {
+                colsCheckbox.forEach(el => el.style.display = 'none');
+                toolbarCetak.style.display = 'none';
+                btnToggle.innerHTML = '<i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Cetak Gabungan</span>';
+                btnToggle.classList.replace('btn-light', 'btn-dark');
+                btnToggle.classList.remove('text-danger', 'border');
+            }
         });
+
         const checkboxes = document.querySelectorAll('.check-item');
-        checkboxes.forEach(box => { box.addEventListener('change', function() { const idToMatch = this.value; const isChecked = this.checked; checkboxes.forEach(otherBox => { if (otherBox.value === idToMatch) { otherBox.checked = isChecked; } }); }); });
-        document.getElementById('checkAll').addEventListener('change', function() { checkboxes.forEach(chk => chk.checked = this.checked); });
+        checkboxes.forEach(box => {
+            box.addEventListener('change', function() {
+                const idToMatch = this.value;
+                const isChecked = this.checked;
+                checkboxes.forEach(otherBox => {
+                    if (otherBox.value === idToMatch) {
+                        otherBox.checked = isChecked;
+                    }
+                });
+            });
+        });
+        
+        document.getElementById('checkAll').addEventListener('change', function() {
+            let checkboxes = document.querySelectorAll('.check-item');
+            checkboxes.forEach(chk => chk.checked = this.checked);
+        });
     </script>
 </body>
 </html>
