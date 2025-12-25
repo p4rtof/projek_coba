@@ -8,14 +8,14 @@ $id_pelanggan = $_GET['id'];
 
 // --- LOGIC AKSI ---
 
-// 1. LUNASI PER ITEM (FIX: Hapus waktu_bayar karena kolom tidak ada)
+// 1. LUNASI PER ITEM (FIX: Hapus waktu_bayar)
 if (isset($_GET['lunasi_item']) && isset($_GET['uid'])) {
     $uid = $_GET['uid']; 
     pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id = '$uid'");
     header("Location: riwayat.php?id=" . $id_pelanggan); exit();
 }
 
-// 2. LUNASI SATU NOTA (FIX: Hapus waktu_bayar karena kolom tidak ada)
+// 2. LUNASI SATU NOTA (FIX: Hapus waktu_bayar)
 if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
     $id_trx = $_GET['id_trx']; 
     pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id_trx'");
@@ -65,9 +65,16 @@ $total_riwayat = pg_num_rows($q_riwayat);
     <style>
         :root { --primary: #4f46e5; --secondary: #64748b; --dark: #0f172a; --light: #f8fafc; --border: #e2e8f0; --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); }
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); }
-        .card-modern { background: white; border: 1px solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s; height: 100%; overflow: hidden; position: relative; }
+        .card-modern { background: white; border: 1px3 solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: transform 0.2s, box-shadow 0.2s; height: 100%; overflow: hidden; position: relative; }
         .customer-header h1 { font-weight: 800; letter-spacing: -1px; color: var(--dark); }
         .info-pill { background: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 50px; font-size: 0.9rem; color: var(--secondary); display: inline-flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; transition: all 0.2s ease; }
+        .info-pill-wa { background: white; border: 2px solid var(--border); padding: 8px 16px; border-radius: 50px; font-size: 0.9rem; color: var(--secondary); display: inline-flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; transition: all 0.2s ease; }
+        .info-pill-alamat { background: white; border: 2px solid var(--border); padding: 8px 16px; border-radius: 50px; font-size: 0.9rem; color: var(--secondary); display: inline-flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; transition: all 0.2s ease; }
+        .info-pill-id { background: white; border: 2px solid var(--border); padding: 8px 16px; border-radius: 50px; font-size: 0.9rem; color: var(--secondary); display: inline-flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; transition: all 0.2s ease; }
+        .info-pill:hover { background-color: #f8fafc; border-color: #cbd5e1; transform: translateY(-1px); }
+        .info-pill-wa:hover { background-color: #c7fbb6c3; border-color: #74f948ff; transform: translateY(-1px); }
+        .info-pill-id:hover { background-color: #c9edfdc3; border-color: #7dd4fcff; transform: translateY(-1px); }
+        .info-pill-alamat:hover { background-color: #fff7c3ca; border-color: #ffe225ff; transform: translateY(-1px); }
         .icon-box-stat { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
         .icon-blue { background: #e0e7ff; color: #4338ca; } .icon-green { background: #dcfce7; color: #166534; } .icon-orange { background: #ffedd5; color: #9a3412; }
         .btn-modern { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
@@ -95,10 +102,28 @@ $total_riwayat = pg_num_rows($q_riwayat);
             <div class="row align-items-center">
                 <div class="col-md-7 customer-header">
                     <h1 class="display-5 mb-2"><?= $p['nama'] ?></h1>
+                    
                     <div class="d-flex gap-2 flex-wrap">
-                        <div class="info-pill text-dark"><i class="bi bi-person-badge text-primary"></i> ID: <?= $p['id_pelanggan'] ?></div>
-                        <div class="info-pill text-dark"><i class="bi bi-geo-alt-fill text-danger"></i> <?= $p['alamat'] ?? '-' ?></div>
+                        <div class="info-pill-id text-dark">
+                            <i class="bi bi-person-badge text-primary"></i> ID: <?= $p['id_pelanggan'] ?>
+                        </div>
+                        
+                        <?php if(!empty($p['hp'])): 
+                            // Format 08... jadi 628...
+                            $wa_num = preg_replace('/^0/', '62', $p['hp']);
+                        ?>
+                        <a href="https://wa.me/<?= $wa_num ?>" target="_blank" class="info-pill-wa text-dark text-decoration-none" title="Chat WhatsApp">
+                            <i class="bi bi-whatsapp text-success"></i> <?= $p['hp'] ?>
+                        </a>
+                        <?php else: ?>
+                        <div class="info-pill-wa text-muted"><i class="bi bi-telephone-x"></i> No HP -</div>
+                        <?php endif; ?>
+
+                        <div class="info-pill-alamat text-dark">
+                            <i class="bi bi-geo-alt-fill text-danger"></i> <?= $p['alamat'] ?? '-' ?>
+                        </div>
                     </div>
+
                 </div>
                 
                 <div class="col-md-5 mt-3 mt-md-0 text-md-end">
@@ -140,7 +165,8 @@ $total_riwayat = pg_num_rows($q_riwayat);
         <form action="../transaksi/invoice.php" method="POST">
             <div class="card-modern overflow-hidden">
                 <div id="toolbarCetak" class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between" style="display:none;">
-                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i><span>Mode Print Invoice: Centang satu ID, semua item dengan ID sama otomatis terpilih.</span></div>
+                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i><span>
+                    Mode Print Invoice: Centang satu ID, semua item dengan ID sama otomatis terpilih.</span></div>
                     <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i class="bi bi-printer me-2"></i>PRINT SEKARANG</button>
                 </div>
 

@@ -2,34 +2,59 @@
 include '../../config/koneksi.php';
 include '../../auth/auth.php';
 
-// --- LOGIKA MENANGKAP ID ---
+// --- 1. LOGIKA MENANGKAP ID ---
 $where_clause = "";
 $mode_judul = "";
+$ids_to_check = []; // Array untuk menyimpan ID Transaksi yang akan dicek
 
 if (isset($_GET['item_id'])) {
+    // Kasus: Print per Item (UID) -> Ambil ID Transaksinya dulu
     $uid = pg_escape_string($conn, $_GET['item_id']);
-    $where_clause = "WHERE t.id = '$uid'";
-    $mode_judul = "#ITEM-" . $uid;
+    $q_cek = pg_query($conn, "SELECT id_transaksi FROM transaksi WHERE id = '$uid'");
+    if ($r = pg_fetch_assoc($q_cek)) {
+        $ids_to_check[] = $r['id_transaksi'];
+        $where_clause = "WHERE t.id = '$uid'"; // Filter query utama tetap by UID agar cuma item itu yg muncul
+    }
 } elseif (isset($_POST['ids']) && !empty($_POST['ids'])) {
-    $ids_to_print = $_POST['ids'];
-    $ids_clean = array_map(function($id) use ($conn) { return pg_escape_string($conn, $id); }, $ids_to_print);
+    // Kasus: Print Banyak (Checkbox) -> ID Transaksi sudah ada di POST
+    $ids_to_check = $_POST['ids'];
+    $ids_clean = array_map(function($id) use ($conn) { return pg_escape_string($conn, $id); }, $ids_to_check);
     $ids_string = "'" . implode("','", $ids_clean) . "'";
     $where_clause = "WHERE t.id_transaksi IN ($ids_string)";
-    $mode_judul = (count($ids_to_print) > 1) ? "#GABUNGAN" : "#" . $ids_to_print[0];
 } elseif (isset($_GET['id'])) {
+    // Kasus: Print Satu Nota Full
     $id_trx = pg_escape_string($conn, $_GET['id']);
+    $ids_to_check[] = $id_trx;
     $where_clause = "WHERE t.id_transaksi = '$id_trx'";
-    $mode_judul = "#" . $id_trx;
 } else {
     echo "<script>alert('Data transaksi tidak ditemukan!'); history.back();</script>";
     exit;
 }
 
+// --- 2. TENTUKAN JUDUL INVOICE ---
+// Cek apakah semua ID dalam array itu sama (unik)
+$unique_ids = array_unique($ids_to_check);
+
+if (count($unique_ids) === 1) {
+    // Jika isinya cuma 1 jenis ID Transaksi (misal T035 semua), pakai ID itu
+    $mode_judul = "#" . reset($unique_ids);
+} else {
+    // Jika isinya campuran (T035 dan T036), baru pakai #GABUNGAN
+    $mode_judul = "#GABUNGAN";
+}
+
+// --- 3. QUERY DATA UTAMA ---
 $query = "SELECT t.*, p.nama AS p_nama, p.hp, p.alamat, pr.nama_produk, pr.harga AS harga_satuan, b.nama_bank, b.no_rekening, b.atas_nama 
-          FROM transaksi t JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan JOIN produk pr ON t.id_produk=pr.id_produk LEFT JOIN bank_akun b ON t.id_bank = b.id_bank 
-          $where_clause ORDER BY t.waktu_order ASC";
+          FROM transaksi t 
+          JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
+          JOIN produk pr ON t.id_produk=pr.id_produk 
+          LEFT JOIN bank_akun b ON t.id_bank = b.id_bank 
+          $where_clause 
+          ORDER BY t.waktu_order ASC";
+
 $result = pg_query($conn, $query);
 if (!$result || pg_num_rows($result) == 0) { die("Data invoice tidak ditemukan."); }
+
 $first_row = pg_fetch_assoc($result);
 pg_result_seek($result, 0); 
 ?>
