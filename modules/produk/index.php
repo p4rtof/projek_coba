@@ -275,7 +275,10 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                                 </tr>
                                 <?php endwhile; ?>
                                 <?php else: ?>
-                                    <tr><td colspan="5" class="text-center py-5 text-secondary">Data produk tidak ditemukan.</td></tr>
+
+                                    <tr><td colspan="5" class="text-center py-5 text-secondary"><i class="bi bi-box fs-1 d-block mb-2 opacity-25"></i>Data produk tidak ditemukan.</td></tr>
+
+                                    <!-- <tr><td colspan="5" class="text-center py-5 text-secondary">Data produk tidak ditemukan.</td></tr> -->
                                 <?php endif; ?>
                             </tbody>
                         </table>

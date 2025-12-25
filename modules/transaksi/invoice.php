@@ -85,7 +85,7 @@ pg_result_seek($result, 0);
             </div>
             <div class="invoice-box">
                 <div class="d-flex justify-content-between align-items-start mb-3 border-bottom pb-2">
-                    <div><h4 class="fw-bold text-primary mb-0">Zaddy Printing</h4><p class="text-muted small mb-0">Jl. Printing Digital No. 123, Jakarta</p><p class="text-muted small mb-0">WA: 0812-3456-7890</p></div>
+                    <div><h4 class="fw-bold text-primary mb-0">Printing</h4><p class="text-muted small mb-0">Jl. Printing Digital No. XXX, Jakarta</p><p class="text-muted small mb-0">WA: 08XX-XXXX-XXXX</p></div>
                     <div class="text-end"><h3 class="fw-bold text-dark mb-0">INVOICE</h3><span class="text-muted fw-bold small"><?= $mode_judul ?></span></div>
                 </div>
                 <div class="row mb-3">
@@ -112,7 +112,7 @@ pg_result_seek($result, 0);
                     <div class="col-7"></div>
                     <div class="col-5">
                         <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-2"><span class="fw-bold text-secondary">TOTAL</span><span class="fw-bold text-primary fs-5">Rp <?= number_format($grand_total, 0, ',','.') ?></span></div>
-                        <div class="text-center mt-4"><p class="mb-5 fw-bold small text-muted">Hormat Kami,</p><br><p class="fw-bold mb-0 text-decoration-underline text-dark small">Zaddy Printing</p></div>
+                        <div class="text-center mt-4"><p class="mb-5 fw-bold small text-muted">Hormat Kami,</p><br><p class="fw-bold mb-0 text-decoration-underline text-dark small">XXX Printing</p></div>
                     </div>
                 </div>
                 <div class="text-center mt-3 pt-2 border-top"><small class="text-muted fst-italic" style="font-size: 0.7rem;">Terima kasih.</small></div>

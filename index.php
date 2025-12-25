@@ -270,7 +270,11 @@ $q_transaksi = pg_query($conn, $query_main);
                                 </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>
-                                <tr><td colspan="9" class="text-center py-5 text-secondary">Tidak ada data transaksi ditemukan.</td></tr>
+                                
+                                <tr><td colspan="9" class="text-center py-5 text-secondary"><i class="bi bi-receipt-cutoff fs-1 d-block mb-2 opacity-25"></i>Tidak ada data transaksi ditemukan.</td></tr>
+
+
+                                <!-- <tr><td colspan="9" class="text-center py-5 text-secondary">Tidak ada data transaksi ditemukan.</td></tr> -->
                             <?php endif; ?>
                         </tbody>
                     </table>
