@@ -32,7 +32,7 @@ if (isset($_POST['login'])) {
 <div class="container mt-5 pt-5">
     <div class="card shadow col-md-4 mx-auto border-0">
         <div class="card-header bg-primary text-white text-center py-3">
-            <h4 class="mb-0">Zaddy Printing</h4>
+            <h4 class="mb-0">Printing</h4>
             <small>Login Administrator</small>
         </div>
         <div class="card-body p-4">

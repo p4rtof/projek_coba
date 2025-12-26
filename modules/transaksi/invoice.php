@@ -5,24 +5,21 @@ include '../../auth/auth.php';
 // --- 1. LOGIKA MENANGKAP ID ---
 $where_clause = "";
 $mode_judul = "";
-$ids_to_check = []; // Array untuk menyimpan ID Transaksi yang akan dicek
+$ids_to_check = [];
 
 if (isset($_GET['item_id'])) {
-    // Kasus: Print per Item (UID) -> Ambil ID Transaksinya dulu
     $uid = pg_escape_string($conn, $_GET['item_id']);
     $q_cek = pg_query($conn, "SELECT id_transaksi FROM transaksi WHERE id = '$uid'");
     if ($r = pg_fetch_assoc($q_cek)) {
         $ids_to_check[] = $r['id_transaksi'];
-        $where_clause = "WHERE t.id = '$uid'"; // Filter query utama tetap by UID agar cuma item itu yg muncul
+        $where_clause = "WHERE t.id = '$uid'";
     }
 } elseif (isset($_POST['ids']) && !empty($_POST['ids'])) {
-    // Kasus: Print Banyak (Checkbox) -> ID Transaksi sudah ada di POST
     $ids_to_check = $_POST['ids'];
     $ids_clean = array_map(function($id) use ($conn) { return pg_escape_string($conn, $id); }, $ids_to_check);
     $ids_string = "'" . implode("','", $ids_clean) . "'";
     $where_clause = "WHERE t.id_transaksi IN ($ids_string)";
 } elseif (isset($_GET['id'])) {
-    // Kasus: Print Satu Nota Full
     $id_trx = pg_escape_string($conn, $_GET['id']);
     $ids_to_check[] = $id_trx;
     $where_clause = "WHERE t.id_transaksi = '$id_trx'";
@@ -31,15 +28,10 @@ if (isset($_GET['item_id'])) {
     exit;
 }
 
-// --- 2. TENTUKAN JUDUL INVOICE ---
-// Cek apakah semua ID dalam array itu sama (unik)
 $unique_ids = array_unique($ids_to_check);
-
 if (count($unique_ids) === 1) {
-    // Jika isinya cuma 1 jenis ID Transaksi (misal T035 semua), pakai ID itu
     $mode_judul = "#" . reset($unique_ids);
 } else {
-    // Jika isinya campuran (T035 dan T036), baru pakai #GABUNGAN
     $mode_judul = "#GABUNGAN";
 }
 
@@ -90,7 +82,17 @@ pg_result_seek($result, 0);
                 </div>
                 <div class="row mb-3">
                     <div class="col-6"><small class="text-muted fw-bold text-uppercase">Kepada:</small><div class="fw-bold text-dark"><?= $first_row['p_nama'] ?></div><div class="small text-muted text-truncate"><?= $first_row['alamat'] ?? '-' ?> | <?= $first_row['hp'] ?? '-' ?></div></div>
-                    <div class="col-6 text-end"><div class="small"><span class="fw-bold">Tgl:</span> <?= date('d/m/y H:i', strtotime($first_row['waktu_order'])) ?><br><span class="badge bg-<?= $first_row['status_pembayaran'] == 'Lunas' ? 'success' : 'danger' ?> text-uppercase" style="font-size: 0.7rem;"><?= $first_row['status_pembayaran'] ?></span></div></div>
+                    
+                    <div class="col-6 text-end">
+                        <div class="small">
+                            <span class="fw-bold">Tgl:</span> <?= date('d/m/y H:i', strtotime($first_row['waktu_order'])) ?>
+                            <br>
+                            <span class="fw-bold text-dark" style="font-size: 0.85rem;">
+                                No. PO: <?= !empty($first_row['no_po']) ? $first_row['no_po'] : '-' ?>
+                            </span>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="mb-3"><div class="payment-box"><div class="d-flex align-items-center"><small class="text-muted fw-bold text-uppercase me-2">Bayar via:</small><div class="small"><?php if (($first_row['metode_pembayaran'] ?? '') == 'Transfer'): ?><span><i class="bi bi-bank me-1"></i> <strong><?= $first_row['nama_bank'] ?></strong></span><span class="mx-2">|</span><span><strong><?= $first_row['no_rekening'] ?></strong></span><?php else: ?><span><i class="bi bi-cash me-1"></i> Tunai (Cash)</span><?php endif; ?></div></div></div></div>
                 <div class="table-responsive mb-3">
