@@ -189,7 +189,7 @@ $q_transaksi = pg_query($conn, $query_main);
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2"><i class="bi bi-clock-history text-primary fs-5"></i><h5 class="fw-bold m-0">Riwayat Transaksi</h5></div>
                 
-                <div class="d-flex gap-2 w-100 w-md-auto justify-content-end align-items-center flex-wrap">
+                <div class="d-flex gap-2 w-90 w-md-auto justify-content-end align-items-center flex-wrap">
                     <form method="GET" class="d-flex gap-2 flex-grow-1 flex-md-grow-0">
                         <input type="date" name="tgl" class="form-control form-control-modern" style="width: auto;" value="<?= $tanggal ?>" onchange="this.form.submit()"> 
                         <div class="position-relative flex-grow-1">
@@ -199,11 +199,11 @@ $q_transaksi = pg_query($conn, $query_main);
                     </form>
                     
                     <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2" style="border-radius: 8px;">
-                        <i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Invoice</span>
+                        <i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Print Invoice</span>
                     </button>
                     
                     <a href="modules/transaksi/keranjang.php" class="btn btn-modern d-flex align-items-center gap-2 shadow-sm px-4 py-2">
-                        <i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline fw-bold">Baru</span>
+                        <i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline fw-bold">TRANSAKSI BARU</span>
                     </a>
                 </div>
             </div>
@@ -212,8 +212,8 @@ $q_transaksi = pg_query($conn, $query_main);
         <form action="modules/transaksi/invoice.php" method="POST" id="formCetakInvoice" class="animate-fade-3">
             <div class="card-modern overflow-hidden">
                 <div id="toolbarCetak" class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between" style="display:none;">
-                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i> <span>Centang ID untuk print massal.</span></div>
-                    <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i class="bi bi-printer me-2"></i>PRINT</button>
+                    <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i> <span>Mode Print Invoice: Centang satu ID, semua item dengan ID sama otomatis terpilih.</span></div>
+                    <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i class="bi bi-printer me-2"></i>PRINT SEKARANG</button>
                 </div>
 
                 <div class="table-responsive">
