@@ -91,10 +91,11 @@
     }
 </style>
 
-<nav class="navbar navbar-expand-lg navbar-light shadow-sm py-3 sticky-top">
+<nav class="navbar navbar-expand-lg navbar-light shadow-sm py-10px sticky-top">
     <div class="container">
         <a class="navbar-brand fw-bold fs-4 text-primary" href="/projek_coba/index.php">
-            <i class="bi bi-printer-fill me-2 bg-primary text-white p-2 rounded-3 fs-6"></i> Printing
+            <img src="logo.png" alt="Print" style="height: auto; width: 80px;">
+            <!-- <i class="bi me-2 bg-primary text-white p-2 rounded-3 fs-6"></i> Printing -->
         </a>
 
         <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
