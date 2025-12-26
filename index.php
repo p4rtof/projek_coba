@@ -96,51 +96,57 @@ $q_transaksi = pg_query($conn, $query_main);
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        :root { --primary: #4f46e5; --secondary: #64748b; --dark: #0f172a; --light: #f8fafc; --border: #e2e8f0; --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        :root { --primary: #4f46e5; --secondary: #64748b; --dark: #0f172a; --light: #f8fafc; --border: #e2e8f0; --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); }
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); overflow-x: hidden; }
         
         /* CARD & GENERAL STYLES */
-        .card-modern { background: white; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--card-shadow); transition: box-shadow 0.2s; height: 100%; position: relative; overflow: hidden; }
-        .card-modern:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08); }
+        .card-modern { background: white; border: 1px solid white; border-radius: 16px; box-shadow: var(--card-shadow); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); height: 100%; position: relative; overflow: hidden; }
+        .card-modern:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
         
         /* ICONS & BADGES */
-        .icon-box-stat { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .icon-box-stat { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: transform 0.3s ease; }
+        .card-modern:hover .icon-box-stat { transform: scale(1.1) rotate(5deg); }
         .icon-blue { background: #e0e7ff; color: #4338ca; } .icon-green { background: #dcfce7; color: #166534; } .icon-orange { background: #ffedd5; color: #9a3412; }
         
         /* INPUTS & BUTTONS */
-        .form-control-modern { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; background: white; transition: border-color 0.2s; }
-        .form-control-modern:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); outline: none; }
+        .form-control-modern { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--light); transition: all 0.3s ease; }
+        .form-control-modern:focus { background: white; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); transform: scale(1.01); }
         
-        .btn-modern { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: background 0.2s; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2); }
-        .btn-modern:hover { background: #4338ca; color: white; }
+        .btn-modern { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
+        .btn-modern:hover { background: #4338ca; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3); color: white; }
         
         /* TABLE & BADGES */
-        .table-custom th { background: #f8fafc; color: var(--secondary); font-size: 0.75rem; text-transform: uppercase; padding: 14px 24px; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
-        .table-custom td { padding: 14px 24px; vertical-align: middle; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        .badge-status { padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+        .table-custom th { background: #f8fafc; color: var(--secondary); font-size: 0.75rem; text-transform: uppercase; padding: 16px 24px; letter-spacing: 0.05em; }
+        .table-custom td { padding: 16px 24px; vertical-align: middle; border-bottom: 1px solid var(--border); }
+        .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .badge-status:hover { transform: scale(1.05); }
         .bg-soft-success { background: #dcfce7; color: #166534; } .bg-soft-danger { background: #fee2e2; color: #991b1b; } .bg-soft-warning { background: #fef3c7; color: #92400e; } .bg-soft-info { background: #e0f2fe; color: #075985; }
 
-        /* --- ANIMASI SUBTLE (HALUS) --- */
-        @keyframes simpleFade {
+        /* --- ANIMASI KEREN (Keyframes) --- */
+        @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
         /* Class Animasi */
-        .animate-fade-1 { animation: simpleFade 0.4s ease-out forwards; opacity: 0; }
-        .animate-fade-2 { animation: simpleFade 0.4s ease-out 0.1s forwards; opacity: 0; } 
-        .animate-fade-3 { animation: simpleFade 0.4s ease-out 0.2s forwards; opacity: 0; } 
+        .animate-fade-1 { animation: fadeInUp 0.3s ease-out forwards; opacity: 0; }
+        .animate-fade-2 { animation: fadeInUp 0.3s ease-out 0.2s forwards; opacity: 0; } /* Delay dikit */
+        .animate-fade-3 { animation: fadeInUp 0.3s ease-out 0.4s forwards; opacity: 0; } /* Delay lagi */
 
-        /* Pagination Simple */
-        .pagination .page-item { margin: 0 2px; }
-        .pagination .page-link { border: 1px solid var(--border); border-radius: 8px !important; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: 500; color: var(--secondary); transition: all 0.2s; }
-        .pagination .page-item.active .page-link { background: var(--primary); color: white; border-color: var(--primary); }
-        .pagination .page-link:hover:not(.active) { background: #f1f5f9; color: var(--dark); }
-        .pagination .page-item.disabled .page-link { background: #f8fafc; color: #cbd5e1; cursor: default; }
+        /* Search Box Glow Animation */
+        .search-group:focus-within { transform: scale(1.02); }
+        .search-group { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Pagination Keren */
+        .pagination .page-item { margin: 0 4px; }
+        .pagination .page-link { border: none; border-radius: 50% !important; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--secondary); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .pagination .page-item.active .page-link { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4); transform: translateY(-2px); }
+        .pagination .page-link:hover:not(.active) { background: #e0e7ff; color: var(--primary); transform: translateY(-2px); }
+        .pagination .page-item.disabled .page-link { background: transparent; color: #cbd5e1; cursor: not-allowed; }
 
         /* Button Action Icons */
-        .btn-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: none; transition: opacity 0.2s; cursor: pointer; text-decoration: none; color: white !important; }
-        .btn-icon:hover { opacity: 0.9; }
+        .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none; color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-icon:hover { transform: translateY(-3px) rotate(5deg); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
         .btn-green { background: #11cf57; } .btn-blue { background: #3b83f6; } .btn-gray { background: #64748b; } .btn-red { background: #ef4444; }
     </style>
 </head>
@@ -190,7 +196,7 @@ $q_transaksi = pg_query($conn, $query_main);
                 <div class="d-flex align-items-center gap-2"><i class="bi bi-clock-history text-primary fs-5"></i><h5 class="fw-bold m-0">Riwayat Transaksi</h5></div>
                 
                 <div class="d-flex gap-2 w-90 w-md-auto justify-content-end align-items-center flex-wrap">
-                    <form method="GET" class="d-flex gap-2 flex-grow-1 flex-md-grow-0">
+                    <form method="GET" class="d-flex gap-2 flex-grow-1 flex-md-grow-0 search-group">
                         <input type="date" name="tgl" class="form-control form-control-modern" style="width: auto;" value="<?= $tanggal ?>" onchange="this.form.submit()"> 
                         <div class="position-relative flex-grow-1">
                             <input type="text" name="q" class="form-control form-control-modern ps-4" placeholder="Cari ID / PO / Produk..." value="<?= $keyword ?>">
@@ -198,12 +204,12 @@ $q_transaksi = pg_query($conn, $query_main);
                         </div>
                     </form>
                     
-                    <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2" style="border-radius: 8px;">
+                    <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2 btn-hover-effect" style="border-radius: 10px; transition: all 0.2s;">
                         <i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Print Invoice</span>
                     </button>
                     
-                    <a href="modules/transaksi/keranjang.php" class="btn btn-modern d-flex align-items-center gap-2 shadow-sm px-4 py-2">
-                        <i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline fw-bold">TRANSAKSI BARU</span>
+                    <a href="modules/transaksi/keranjang.php" class="btn btn-modern d-flex align-items-center gap-2 shadow-sm px-4 py-2" style="background-color: #4f46e5; color: white;">
+                        <i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline fw-bold">Transaksi Baru</span>
                     </a>
                 </div>
             </div>
@@ -302,7 +308,7 @@ $q_transaksi = pg_query($conn, $query_main);
         <?php if ($total_pages > 1): ?>
         <div class="d-flex justify-content-center mt-4 animate-fade-3">
             <nav>
-                <ul class="pagination shadow-sm bg-white rounded-3 p-1">
+                <ul class="pagination shadow-sm bg-white rounded-pill p-1">
                     <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
                         <a class="page-link" href="?page=<?= $page-1 ?>&q=<?= $keyword ?>&tgl=<?= $tanggal ?>"><i class="bi bi-chevron-left"></i></a>
                     </li>
