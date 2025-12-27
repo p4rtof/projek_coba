@@ -13,30 +13,24 @@ if (isset($_POST['simpan_transaksi'])) {
     $pelanggan_id = $_POST['pelanggan_id'];
     $tgl_input = $_POST['tgl_input'];
     $no_po = pg_escape_string($conn, $_POST['no_po']);
-
-    // [BARU] TANGKAP NO INVOICE MANUAL
     $id_gabungan = pg_escape_string($conn, $_POST['id_transaksi']);
 
     // JAM OTOMATIS MENGIKUTI WAKTU WIB
     $jam_sekarang = date('H:i:s');
     $waktu_fix = $tgl_input . ' ' . $jam_sekarang;
 
-    $status_bayar = $_POST['status_pembayaran'];
+    // --- REVISI: STATUS BAYAR & STATUS ORDER DIHAPUS ---
     $metode = $_POST['metode_pembayaran'];
     $id_bank = ($metode == 'Transfer') ? $_POST['bank_id'] : 'NULL';
-    $status_order = 'Proses';
 
     if (!isset($_POST['produk_id'])) {
         echo "<script>alert('Keranjang kosong! Masukkan item dulu.'); window.history.back();</script>";
         exit;
     }
 
-    // Cek apakah ID Transaksi sudah ada (Opsional, untuk mencegah duplikat)
+    // Cek apakah ID Transaksi sudah ada (Opsional)
     $cek = pg_query($conn, "SELECT id_transaksi FROM transaksi WHERE id_transaksi = '$id_gabungan' LIMIT 1");
-    if (pg_num_rows($cek) > 0) {
-        // Logika: Jika ID sudah ada, kita tetap lanjutkan (berarti nambah item ke invoice yg sama)
-        // atau bisa di-alert error jika tidak boleh. Di sini kita biarkan lanjut (merge).
-    }
+    // (Logika merge invoice jika diperlukan)
 
     $items = $_POST['produk_id'];
     $error_db = false;
@@ -65,9 +59,9 @@ if (isset($_POST['simpan_transaksi'])) {
         }
         $subtotal = $harga_fix * $jumlah;
 
-        // INSERT DENGAN ID MANUAL
-        $query = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, status_pembayaran, status_order, panjang, lebar, metode_pembayaran, id_bank, no_po) 
-                  VALUES ('$id_gabungan', '$pelanggan_id', '$prod_id', '$waktu_fix', '$jumlah', '$subtotal', '$status_bayar', '$status_order', '$panjang', '$lebar', '$metode', $id_bank, '$no_po')";
+        // --- INSERT DATABASE (KOLOM STATUS DIHAPUS) ---
+        $query = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, panjang, lebar, metode_pembayaran, id_bank, no_po) 
+                  VALUES ('$id_gabungan', '$pelanggan_id', '$prod_id', '$waktu_fix', '$jumlah', '$subtotal', '$panjang', '$lebar', '$metode', $id_bank, '$no_po')";
 
         if (pg_query($conn, $query)) {
             $stok_baru = $stok_now - $jumlah;
@@ -193,20 +187,6 @@ if (isset($_POST['simpan_transaksi'])) {
             border-color: #cbd5e1;
             background: #f8fafc;
             transform: translateY(-1px);
-        }
-
-        .radio-card-input:checked+.radio-card-label.label-lunas {
-            border-color: #10b981;
-            background-color: #ecfdf5;
-            color: #059669;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
-        }
-
-        .radio-card-input:checked+.radio-card-label.label-hutang {
-            border-color: #f59e0b;
-            background-color: #fffbeb;
-            color: #d97706;
-            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
         }
 
         .radio-card-input:checked+.radio-card-label.label-bank {
@@ -438,30 +418,6 @@ if (isset($_POST['simpan_transaksi'])) {
                                             ?>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label mb-2">Status Pembayaran</label>
-                                <div class="row g-2">
-                                    <div class="col-6"><input type="radio" class="radio-card-input"
-                                            name="status_pembayaran" id="status_lunas" value="Lunas" checked><label
-                                            class="radio-card-label label-lunas" for="status_lunas"><i
-                                                class="bi bi-check-circle-fill radio-icon"></i>
-                                            <div>
-                                                <div class="fw-bold small">LUNAS</div>
-                                                <div class="small opacity-75" style="font-size: 0.7rem;">Sudah Bayar
-                                                </div>
-                                            </div>
-                                        </label></div>
-                                    <div class="col-6"><input type="radio" class="radio-card-input"
-                                            name="status_pembayaran" id="status_hutang" value="Belum Lunas"><label
-                                            class="radio-card-label label-hutang" for="status_hutang"><i
-                                                class="bi bi-hourglass-split radio-icon"></i>
-                                            <div>
-                                                <div class="fw-bold small">BELUM LUNAS</div>
-                                                <div class="small opacity-75" style="font-size: 0.7rem;">Hutang</div>
-                                            </div>
-                                        </label></div>
                                 </div>
                             </div>
                             <button type="submit" name="simpan_transaksi" class="btn-modern py-3"><i

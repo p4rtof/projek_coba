@@ -226,8 +226,8 @@ $logo_src = $available_logos['Sriwijaya'];
                 <button onclick="window.print()" class="btn btn-sm btn-dark shadow-sm px-4 fw-bold"><i
                         class="bi bi-printer-fill me-2"></i>Cetak</button>
             </div>
-            <div class="no-print mt-1"><small class="text-white fst-italic" style="font-size: 11px;">*Klik teks header
-                    untuk mengedit</small></div>
+            <!-- <div class="no-print mt-1"><small class="text-white fst-italic" style="font-size: 11px;">*Klik teks header -->
+                    <!-- untuk mengedit</small></div> -->
         </div>
 
         <div class="sj-box">

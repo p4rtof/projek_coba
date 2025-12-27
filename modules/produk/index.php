@@ -10,14 +10,12 @@ if (isset($_GET['hapus'])) {
     $cek_transaksi = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM transaksi WHERE id_produk = '$id'"));
 
     if ($cek_transaksi['total'] > 0) {
-        // JIKA SUDAH PERNAH DIPESAN: Tampilkan Peringatan & BATALKAN HAPUS
         echo "<script>
             alert('🚫 GAGAL MENGHAPUS!\\n\\nProduk ini tercatat dalam " . $cek_transaksi['total'] . " riwayat transaksi.\\nData tidak boleh dihapus demi keamanan laporan keuangan.');
             window.location.href = 'index.php';
         </script>";
         exit(); 
     } else {
-        // JIKA BELUM PERNAH DIPESAN: Aman untuk dihapus
         pg_query($conn, "DELETE FROM produk WHERE id_produk = '$id'");
         header("Location: index.php");
         exit();
@@ -26,9 +24,9 @@ if (isset($_GET['hapus'])) {
 
 // --- LOGIC SIMPAN / EDIT ---
 if (isset($_POST['simpan'])) {
-    $nama  = pg_escape_string($conn, $_POST['nama_produk']);
+    $nama   = pg_escape_string($conn, $_POST['nama_produk']);
     $harga = (int)$_POST['harga'];
-    $stok  = (int)$_POST['stok_bahan'];
+    $stok   = (int)$_POST['stok_bahan'];
     $jenis = pg_escape_string($conn, $_POST['jenis_satuan']);
 
     if (!empty($_POST['id_edit'])) {
@@ -99,12 +97,18 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
         }
         .btn-modern:hover { background: var(--primary-hover); transform: translateY(-2px); }
 
-        .table-custom { margin: 0; }
+        .table-custom { margin: 0; table-layout: fixed; width: 100%; } /* Table Layout Fixed agar width persen bekerja */
+        
         .table-custom thead th {
             background: #f8fafc; color: var(--secondary); font-size: 0.75rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 24px; border-bottom: 1px solid var(--border);
+            text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 12px; border-bottom: 1px solid var(--border);
+            white-space: nowrap; /* Mencegah header turun baris */
         }
-        .table-custom tbody td { padding: 16px 24px; vertical-align: middle; font-size: 0.95rem; border-bottom: 1px solid var(--border); color: var(--dark); }
+        .table-custom tbody td { 
+            padding: 16px 12px; vertical-align: middle; font-size: 0.95rem; 
+            border-bottom: 1px solid var(--border); color: var(--dark);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Agar teks panjang jadi ... */
+        }
         
         .badge-satuan { padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; }
         .badge-meter { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
@@ -213,11 +217,10 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                         <table class="table table-custom mb-0">
                             <thead>
                                 <tr>
-                                    <th class="ps-4">Nama Produk</th>
-                                    <th class="text-center">Satuan</th>
-                                    <th class="text-center">Qty</th>
-                                    <th>Harga</th>
-                                    <th class="text-end pe-4">Aksi</th>
+                                    <th class="ps-4" style="width: 40%;">Nama Produk</th>
+                                    <th class="text-center" style="width: 15%;">Satuan</th>
+                                    <th class="text-center" style="width: 10%;">Qty</th>
+                                    <th style="width: 25%; min-width: 150px;">Harga</th> <th class="text-end pe-4" style="width: 15%;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -241,7 +244,7 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                                 ?>
                                 <tr>
                                     <td class="ps-4">
-                                        <div class="fw-bold text-dark"><?= $row['nama_produk'] ?></div>
+                                        <div class="fw-bold text-dark text-truncate" title="<?= $row['nama_produk'] ?>"><?= $row['nama_produk'] ?></div>
                                         <div class="small text-secondary" style="font-size: 0.75rem;">ID: <?= $row['id_produk'] ?></div>
                                     </td>
                                     
@@ -259,7 +262,7 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                                         </strong>
                                     </td>
 
-                                    <td class="fw-bold text-dark">Rp <?= number_format($row['harga'], 0, ',', '.') ?></td>
+                                    <td class="fw-bold text-dark text-nowrap">Rp <?= number_format($row['harga'], 0, ',', '.') ?></td>
 
                                     <td class="text-end pe-4">
                                         <div class="d-flex justify-content-end gap-2">
@@ -275,10 +278,7 @@ $total_produk = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM pr
                                 </tr>
                                 <?php endwhile; ?>
                                 <?php else: ?>
-
                                     <tr><td colspan="5" class="text-center py-5 text-secondary"><i class="bi bi-box fs-1 d-block mb-2 opacity-25"></i>Data produk tidak ditemukan.</td></tr>
-
-                                    <!-- <tr><td colspan="5" class="text-center py-5 text-secondary">Data produk tidak ditemukan.</td></tr> -->
                                 <?php endif; ?>
                             </tbody>
                         </table>

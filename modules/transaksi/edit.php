@@ -14,21 +14,25 @@ if (!isset($_SESSION['edit_cart']) || $_SESSION['edit_id_trx'] != $id_transaksi)
     $q_detail = pg_query($conn, "SELECT t.*, p.nama_produk, p.harga, p.jenis_satuan, p.stok_bahan FROM transaksi t JOIN produk p ON t.id_produk = p.id_produk WHERE t.id_transaksi = '$id_transaksi'");
     $items = [];
     while ($row = pg_fetch_assoc($q_detail)) {
-        if ($row['jenis_satuan'] == 'Meter') { $luas = ($row['panjang'] * $row['lebar']) ?: 1; $harga_satuan = $row['total_harga'] / ($row['jumlah'] * $luas); } 
-        else { $harga_satuan = $row['total_harga'] / $row['jumlah']; }
+        if ($row['jenis_satuan'] == 'Meter') { 
+            $luas = ($row['panjang'] * $row['lebar']) ?: 1; 
+            $harga_satuan = $row['total_harga'] / ($row['jumlah'] * $luas); 
+        } else { 
+            $harga_satuan = $row['total_harga'] / $row['jumlah']; 
+        }
         $items[] = ['id_produk' => $row['id_produk'], 'nama_produk' => $row['nama_produk'], 'jumlah' => $row['jumlah'], 'harga_satuan' => $harga_satuan, 'panjang' => $row['panjang'], 'lebar' => $row['lebar'], 'total_harga' => $row['total_harga'], 'jenis_satuan' => $row['jenis_satuan']];
     }
 
     $_SESSION['edit_id_trx'] = $id_transaksi;
     $_SESSION['edit_cart'] = $items;
+    
+    // [REVISI] Menghapus status_pembayaran & status_order dari session header
     $_SESSION['edit_header'] = [
         'id_pelanggan' => $header['id_pelanggan'],
         'waktu_order' => $header['waktu_order'],
-        'status_pembayaran' => $header['status_pembayaran'],
-        'status_order' => $header['status_order'],
         'metode_pembayaran' => $header['metode_pembayaran'],
         'id_bank' => $header['id_bank'],
-        'no_po' => $header['no_po'] // <-- SIMPAN PO LAMA DI SESSION
+        'no_po' => $header['no_po']
     ];
 }
 
@@ -36,8 +40,16 @@ if (!isset($_SESSION['edit_cart']) || $_SESSION['edit_id_trx'] != $id_transaksi)
 if (isset($_POST['tambah_item'])) {
     $id_prod = $_POST['id_produk']; $jumlah = (int)$_POST['jumlah'];
     $q_p = pg_query($conn, "SELECT * FROM produk WHERE id_produk = '$id_prod'"); $prod = pg_fetch_assoc($q_p);
-    if ($prod['jenis_satuan'] == 'Meter') { $panjang = (float)($_POST['panjang'] ?? 1); $lebar = (float)($_POST['lebar'] ?? 1); $luas = ($panjang * $lebar) ?: 1; $total = $luas * $prod['harga'] * $jumlah; } 
-    else { $panjang = 0; $lebar = 0; $total = $prod['harga'] * $jumlah; }
+    
+    if ($prod['jenis_satuan'] == 'Meter') { 
+        $panjang = (float)($_POST['panjang'] ?? 1); 
+        $lebar = (float)($_POST['lebar'] ?? 1); 
+        $luas = ($panjang * $lebar) ?: 1; 
+        $total = $luas * $prod['harga'] * $jumlah; 
+    } else { 
+        $panjang = 0; $lebar = 0; 
+        $total = $prod['harga'] * $jumlah; 
+    }
 
     $_SESSION['edit_cart'][] = ['id_produk' => $id_prod, 'nama_produk' => $prod['nama_produk'], 'jumlah' => $jumlah, 'harga_satuan' => $prod['harga'], 'panjang' => $panjang, 'lebar' => $lebar, 'total_harga' => $total, 'jenis_satuan' => $prod['jenis_satuan']];
     header("Location: edit.php?id=$id_transaksi"); exit();
@@ -53,7 +65,9 @@ if (isset($_GET['hapus_idx'])) {
 if (isset($_POST['simpan_perubahan'])) {
     // A. Kembalikan Stok Lama
     $q_old_items = pg_query($conn, "SELECT id_produk, jumlah FROM transaksi WHERE id_transaksi = '$id_transaksi'");
-    while ($old = pg_fetch_assoc($q_old_items)) { pg_query($conn, "UPDATE produk SET stok_bahan = stok_bahan + {$old['jumlah']} WHERE id_produk = '{$old['id_produk']}'"); }
+    while ($old = pg_fetch_assoc($q_old_items)) { 
+        pg_query($conn, "UPDATE produk SET stok_bahan = stok_bahan + {$old['jumlah']} WHERE id_produk = '{$old['id_produk']}'"); 
+    }
 
     // B. Hapus Data Lama
     pg_query($conn, "DELETE FROM transaksi WHERE id_transaksi = '$id_transaksi'");
@@ -61,21 +75,35 @@ if (isset($_POST['simpan_perubahan'])) {
     // C. Siapkan Data Baru
     $pelanggan_id = $_POST['pelanggan_id'];
     $tgl_input = $_POST['tgl_input'];
-    $no_po = pg_escape_string($conn, $_POST['no_po']); // <-- TANGKAP PO BARU
-    $jam_sekarang = date('H:i:s'); $waktu_fix = $tgl_input . ' ' . $jam_sekarang;
+    $no_po = pg_escape_string($conn, $_POST['no_po']);
+    $jam_sekarang = date('H:i:s'); 
+    $waktu_fix = $tgl_input . ' ' . $jam_sekarang;
 
-    $status_byr = $_POST['status_pembayaran']; $status_ord = 'Proses'; 
-    $metode = $_POST['metode_pembayaran']; $id_bank = ($metode == 'Transfer') ? $_POST['bank_id'] : 'NULL';
+    // [REVISI] Menghapus variabel status bayar & status order
+    $metode = $_POST['metode_pembayaran']; 
+    $id_bank = ($metode == 'Transfer') ? $_POST['bank_id'] : 'NULL';
     $error = false;
     
     foreach ($_SESSION['edit_cart'] as $item) {
         $id_p = $item['id_produk']; $qty = $item['jumlah']; $tot = $item['total_harga']; $p = $item['panjang']; $l = $item['lebar'];
-        // INSERT PO
-        $q_ins = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, status_pembayaran, status_order, panjang, lebar, metode_pembayaran, id_bank, no_po) VALUES ('$id_transaksi', '$pelanggan_id', '$id_p', '$waktu_fix', $qty, $tot, '$status_byr', '$status_ord', $p, $l, '$metode', $id_bank, '$no_po')";
-        if (pg_query($conn, $q_ins)) { pg_query($conn, "UPDATE produk SET stok_bahan = stok_bahan - $qty WHERE id_produk = '$id_p'"); } else { $error = true; }
+        
+        // [REVISI] Query Insert tanpa kolom status
+        $q_ins = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, panjang, lebar, metode_pembayaran, id_bank, no_po) 
+                  VALUES ('$id_transaksi', '$pelanggan_id', '$id_p', '$waktu_fix', $qty, $tot, $p, $l, '$metode', $id_bank, '$no_po')";
+        
+        if (pg_query($conn, $q_ins)) { 
+            pg_query($conn, "UPDATE produk SET stok_bahan = stok_bahan - $qty WHERE id_produk = '$id_p'"); 
+        } else { 
+            $error = true; 
+        }
     }
 
-    if (!$error) { unset($_SESSION['edit_cart']); unset($_SESSION['edit_id_trx']); unset($_SESSION['edit_header']); echo "<script>alert('Perubahan berhasil disimpan!'); window.location.href='../../index.php';</script>"; } else { echo "Gagal menyimpan perubahan."; }
+    if (!$error) { 
+        unset($_SESSION['edit_cart']); unset($_SESSION['edit_id_trx']); unset($_SESSION['edit_header']); 
+        echo "<script>alert('Perubahan berhasil disimpan!'); window.location.href='../../index.php';</script>"; 
+    } else { 
+        echo "Gagal menyimpan perubahan."; 
+    }
 }
 
 $cart = $_SESSION['edit_cart']; $head = $_SESSION['edit_header'];
@@ -101,8 +129,6 @@ $cart = $_SESSION['edit_cart']; $head = $_SESSION['edit_header'];
         .radio-card-input { display: none; }
         .radio-card-label { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; cursor: pointer; border: 1px solid var(--border); border-radius: 10px; padding: 10px 15px; background: white; transition: all 0.2s ease; height: 100%; text-align: left; }
         .radio-card-label:hover { border-color: #cbd5e1; background: #f8fafc; transform: translateY(-1px); }
-        .radio-card-input:checked + .radio-card-label.label-lunas { border-color: #10b981; background-color: #ecfdf5; color: #059669; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1); }
-        .radio-card-input:checked + .radio-card-label.label-hutang { border-color: #f59e0b; background-color: #fffbeb; color: #d97706; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1); }
         .radio-card-input:checked + .radio-card-label.label-bank { border-color: var(--primary); background-color: #eef2ff; color: var(--primary); box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1); }
         .radio-icon { font-size: 1.6rem; margin-right: 12px; margin-bottom: 0; line-height: 1; }
         .table-cart th { font-size: 0.75rem; text-transform: uppercase; color: #64748b; background: #f8fafc; border-bottom: 1px solid var(--border); }
@@ -218,13 +244,7 @@ $cart = $_SESSION['edit_cart']; $head = $_SESSION['edit_header'];
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label mb-2">Status Pembayaran</label>
-                                <div class="row g-2">
-                                    <div class="col-6"><input type="radio" class="radio-card-input" name="status_pembayaran" id="status_lunas" value="Lunas" <?= $head['status_pembayaran']=='Lunas'?'checked':'' ?>><label class="radio-card-label label-lunas" for="status_lunas"><i class="bi bi-check-circle-fill radio-icon"></i><div><div class="fw-bold small">LUNAS</div><div class="small opacity-75" style="font-size: 0.7rem;">Sudah Bayar</div></div></label></div>
-                                    <div class="col-6"><input type="radio" class="radio-card-input" name="status_pembayaran" id="status_hutang" value="Belum Lunas" <?= $head['status_pembayaran']!='Lunas'?'checked':'' ?>><label class="radio-card-label label-hutang" for="status_hutang"><i class="bi bi-hourglass-split radio-icon"></i><div><div class="fw-bold small">BELUM</div><div class="small opacity-75" style="font-size: 0.7rem;">Utang</div></div></label></div>
-                                </div>
-                            </div>
+                            
                             <button type="submit" name="simpan_perubahan" class="btn-modern py-3" onclick="return confirm('Yakin simpan perubahan ini? Data lama akan ditimpa.')"><i class="bi bi-save-fill me-2"></i> SIMPAN PERUBAHAN</button>
                         </div>
                     </div>

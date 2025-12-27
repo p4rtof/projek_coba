@@ -63,7 +63,6 @@ $is_bayer = (strpos($nama_pelanggan, 'PT. BAYER INDONESIA') !== false);
 $available_logos = [
     'Sriwijaya Print' => '../../logo.png.jpeg',
     'Awab Print' => '../../awabprint.jpeg',
-    // 'Bayer' => '../../logo_bayer.png'
 ];
 
 // Set Logo Awal
@@ -133,12 +132,33 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
             outline: 1px dashed #ccc;
         }
 
-        .table-sm td,
-        .table-sm th {
+        /* TABEL CUSTOM (GARIS HORIZONTAL SAJA & HEADER TEBAL) */
+        .table-invoice {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-invoice th {
+            border-top: 2px solid #000; /* Garis Atas Tebal */
+            border-bottom: 2px solid #000; /* Garis Bawah Tebal */
+            padding: 8px 5px;
             font-size: 0.85rem;
-            vertical-align: middle; /* Ubah ke middle biar rapi */
-            padding: 4px 5px !important;
-            border-color: #ffffffff !important;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .table-invoice td {
+            border-bottom: 1px solid #ccc; /* Garis Horizontal Tipis */
+            padding: 5px 5px;
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+
+        /* HILANGKAN GARIS BAWAH TOTAL */
+        .table-invoice tfoot td {
+            border-bottom: none !important; 
+            border-top: 2px solid #000; /* Garis Pemisah Body ke Footer Tebal */
+            padding-top: 7px;
         }
 
         /* SETTING PRINT */
@@ -189,7 +209,6 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
             td,
             th {
                 font-size: 9pt !important;
-                padding: 2px 4px !important;
             }
 
             img {
@@ -242,7 +261,7 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                         </div>
 
                         <div class="d-flex gap-2">
-                            <a href="javascript:history.back()" class="btn btn-sm btn-light border fw-bold"><i
+                            <a href="../../index.php" class="btn btn-sm btn-light border fw-bold"><i
                                     class="bi bi-arrow-left me-1"></i>Kembali</a>
                             <a href="<?= $link_surat_jalan ?>" target="_blank" class="btn btn-sm btn-dark fw-bold"><i
                                     class="bi bi-truck me-1"></i>Surat Jalan</a>
@@ -271,7 +290,7 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                     </div>
 
                     <div class="row mb-4">
-                        <div class="col-7">
+                        <div class="col-6">
                             <small class="text-secondary fw-bold text-uppercase" style="font-size: 0.7rem;">Kepada
                                 Yth:</small>
                             <div class="fw-bold text-dark fs-6 mt-1"><?= $first_row['p_nama'] ?></div>
@@ -284,19 +303,18 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
 
                             <?php if (!empty($first_row['alamat']) && $first_row['alamat'] !== '-'): ?>
                                 <div class="text-dark small mt-1"
-                                    style="white-space: normal; line-height: 1.4; width: 90%;">
-                                    <?= $first_row['alamat'] ?>
+                                    style="white-space: normal; line-height: 1.4; width: 70%;">
+                                    <?= nl2br(htmlspecialchars($first_row['alamat'])) ?>
                                 </div>
                             <?php endif; ?>
                         </div>
 
-                        <div class="col-5 text-end">
+                        <div class="col-6 text-end">
                             <table style="width: auto; margin-left: auto; text-align: left; font-size: 0.9rem;">
                                 <tr>
                                     <td class="fw-bold text-secondary pe-3 pb-1">Tanggal</td>
                                     <td class="fw-bold text-dark pb-1">:
                                         <?php
-                                        // Format Tanggal Indo
                                         $ts = strtotime($first_row['waktu_order']);
                                         $bulan = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                                         echo date('d', $ts) . ' ' . $bulan[date('n', $ts)] . ' ' . date('Y', $ts);
@@ -333,13 +351,13 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                     </div>
 
                     <div class="table-responsive mb-4">
-                        <table class="table table-bordered border-dark mb-0 table-sm">
-                            <thead style="background-color: #eee;">
+                        <table class="table-invoice">
+                            <thead>
                                 <tr>
-                                    <th class="text-start text-dark" style="width: 52%;">Deskripsi Produk</th>
-                                    <th class="text-center text-dark" style="width: 8%;">Qty</th>
-                                    <th class="text-end text-dark" style="width: 20%;">Harga</th>
-                                    <th class="text-end text-dark" style="width: 20%;">Subtotal</th>
+                                    <th style="width: 52%;">Deskripsi Produk</th>
+                                    <th class="text-center" style="width: 8%;">Qty</th>
+                                    <th class="text-end" style="width: 20%;">Harga</th>
+                                    <th class="text-end" style="width: 20%;">Subtotal</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -347,13 +365,12 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                                 while ($row = pg_fetch_assoc($result)):
                                     $grand_total += $row['total_harga']; 
                                     
-                                    // [MODIFIKASI] Gabungkan Nama Produk dan Ukuran
                                     $nama_barang = $row['nama_produk'];
                                     if($row['panjang'] > 0) {
                                         $nama_barang .= " (Ukuran: " . floatval($row['panjang']) . "m x " . floatval($row['lebar']) . "m)";
                                     }
                                 ?>
-                                    <tr style="height: 5px;">
+                                    <tr>
                                         <td class="text-start">
                                             <span class="fw-bold text-dark small"><?= $nama_barang ?></span>
                                             <?php if (isset($_GET['item_id'])): ?><br><small class="text-muted"
@@ -370,10 +387,10 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                                     </tr>
                                 <?php endwhile; ?>
                             </tbody>
-                            <tfoot style="border-top: 2px solid #000;">
+                            <tfoot>
                                 <tr>
                                     <td colspan="3" class="text-end fw-bold small pe-2">TOTAL TAGIHAN</td>
-                                    <td class="text-end fw-bold fs-6 text-dark">Rp
+                                    <td class="text-end fw-bold fs-7 text-dark">Rp
                                         <?= number_format($grand_total, 0, ',', '.') ?>
                                     </td>
                                 </tr>
@@ -385,7 +402,7 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                         <div class="col-6 text-center">
                             <p class="mb-5 fw-bold small text-dark" style="font-size: 0.8rem;">HORMAT KAMI</p>
                             <br>
-                            <p class="fw-bold mb-0 text-decoration-underline text-dark small">(FARZA)</p>
+                            <p class="fw-bold mb-0 text-decoration-underline text-dark small">FARZA</p>
                         </div>
                     </div>
 

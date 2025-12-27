@@ -11,34 +11,7 @@ $id_pelanggan = $_GET['id'];
 
 // --- LOGIC AKSI ---
 
-// 1. LUNASI PER ITEM
-if (isset($_GET['lunasi_item']) && isset($_GET['uid'])) {
-    $uid = $_GET['uid'];
-    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id = '$uid'");
-    header("Location: riwayat.php?id=" . $id_pelanggan);
-    exit();
-}
-
-// 2. LUNASI SATU NOTA
-if (isset($_GET['lunasi_nota']) && isset($_GET['id_trx'])) {
-    $id_trx = $_GET['id_trx'];
-    pg_query($conn, "UPDATE transaksi SET status_pembayaran = 'Lunas' WHERE id_transaksi = '$id_trx'");
-    header("Location: riwayat.php?id=" . $id_pelanggan);
-    exit();
-}
-
-// 3. PROGRESS UPDATE
-if (isset($_GET['naik_status']) && isset($_GET['uid']) && isset($_GET['status'])) {
-    $uid = $_GET['uid'];
-    $st = $_GET['status'];
-    $new = ($st == 'Proses') ? 'Selesai' : (($st == 'Selesai') ? 'Done' : '');
-    if ($new)
-        pg_query($conn, "UPDATE transaksi SET status_order = '$new' WHERE id = '$uid'");
-    header("Location: riwayat.php?id=" . $id_pelanggan);
-    exit();
-}
-
-// 4. HAPUS
+// 1. HAPUS TRANSAKSI
 if (isset($_GET['hapus']) && isset($_GET['uid'])) {
     $uid = $_GET['uid'];
     pg_query($conn, "DELETE FROM transaksi WHERE id = '$uid'");
@@ -59,10 +32,11 @@ $keyword = $_GET['q'] ?? '';
 $conditions = ["t.id_pelanggan = '$id_pelanggan'"];
 if (!empty($keyword)) {
     $safe_key = pg_escape_string($conn, $keyword);
-    // [UPDATE] Pencarian mencakup No. PO
     $conditions[] = "(t.id_transaksi ILIKE '%$safe_key%' OR t.no_po ILIKE '%$safe_key%' OR pr.nama_produk ILIKE '%$safe_key%')";
 }
 $where_sql = "WHERE " . implode(" AND ", $conditions);
+
+// Query utama
 $query_transaksi = "SELECT t.*, pr.nama_produk FROM transaksi t JOIN produk pr ON t.id_produk = pr.id_produk $where_sql ORDER BY t.waktu_order DESC, t.id_transaksi DESC";
 $q_riwayat = pg_query($conn, $query_transaksi);
 $total_riwayat = pg_num_rows($q_riwayat);
@@ -137,20 +111,6 @@ $total_riwayat = pg_num_rows($q_riwayat);
         .info-pill-id:hover { background-color: #e0f2fe; border-color: #0ea5e9; }
         .info-pill-alamat:hover { background-color: #fefce8; border-color: #eab308; }
 
-        .icon-box-stat {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-        }
-
-        .icon-blue { background: #e0e7ff; color: #4338ca; }
-        .icon-green { background: #dcfce7; color: #166534; }
-        .icon-orange { background: #ffedd5; color: #9a3412; }
-
         .btn-modern {
             background: var(--primary);
             color: white;
@@ -210,38 +170,11 @@ $total_riwayat = pg_num_rows($q_riwayat);
             border-bottom: 1px solid var(--border);
         }
 
-        .badge-status {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            position: relative;
-            z-index: 10;
-        }
-
-        .bg-soft-success { background: #dcfce7; color: #166534; }
-        .bg-soft-danger { background: #fee2e2; color: #991b1b; }
-        .bg-soft-warning { background: #fef3c7; color: #92400e; }
-        .bg-soft-info { background: #e0f2fe; color: #075985; }
-
         .form-control-modern {
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 10px 14px;
             background: var(--light);
-        }
-
-        .dropdown-item {
-            font-size: 0.9rem;
-            padding: 8px 16px;
-            color: var(--secondary);
-        }
-
-        .dropdown-item:hover {
-            background-color: var(--light);
-            color: var(--primary);
         }
     </style>
 </head>
@@ -293,38 +226,6 @@ $total_riwayat = pg_num_rows($q_riwayat);
             </div>
         </div>
 
-        <div class="row g-4 mb-4">
-            <div class="col-md-4">
-                <div class="card-modern p-4 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-secondary fw-bold small mb-1">TOTAL PESANAN</div>
-                        <h2 class="fw-bold m-0"><?= $total_riwayat ?> <span class="fs-6 fw-normal">Kali</span></h2>
-                    </div>
-                    <div class="icon-box-stat icon-blue"><i class="bi bi-bag-check-fill"></i></div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <?php $lunas = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS c FROM transaksi WHERE id_pelanggan='$id_pelanggan' AND status_pembayaran='Lunas'")); ?>
-                <div class="card-modern p-4 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-secondary fw-bold small mb-1">LUNAS</div>
-                        <h2 class="fw-bold m-0"><?= $lunas['c'] ?> <span class="fs-6 fw-normal">Nota</span></h2>
-                    </div>
-                    <div class="icon-box-stat icon-green"><i class="bi bi-check-circle-fill"></i></div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <?php $utang = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS c FROM transaksi WHERE id_pelanggan='$id_pelanggan' AND status_pembayaran='Belum Lunas'")); ?>
-                <div class="card-modern p-4 d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-secondary fw-bold small mb-1">BELUM LUNAS</div>
-                        <h2 class="fw-bold m-0"><?= $utang['c'] ?> <span class="fs-6 fw-normal">Nota</span></h2>
-                    </div>
-                    <div class="icon-box-stat icon-orange"><i class="bi bi-exclamation-triangle-fill"></i></div>
-                </div>
-            </div>
-        </div>
-
         <div class="card-modern mb-4 p-3">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2"><i class="bi bi-clock-history text-primary fs-5"></i>
@@ -372,8 +273,6 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                 <th class="text-start">Produk</th>
                                 <th class="text-nowrap">Qty</th>
                                 <th class="text-nowrap">Total</th>
-                                <th class="text-nowrap">Status</th>
-                                <th class="text-nowrap">Progress</th>
                                 <th class="text-end pe-4 text-nowrap">Aksi</th>
                             </tr>
                         </thead>
@@ -409,61 +308,19 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                         <td class="fw-bold text-dark text-nowrap">Rp
                                             <?= number_format($r['total_harga'], 0, ',', '.') ?></td>
 
-                                        <td class="text-nowrap">
-                                            <?php if ($r['status_pembayaran'] == 'Lunas'): ?>
-                                                <span class="badge badge-status bg-soft-success">Lunas</span>
-                                            <?php else: ?>
-                                                <span class="badge badge-status bg-soft-danger">Belum Lunas</span>
-                                            <?php endif; ?>
-                                        </td>
-
-                                        <td class="text-nowrap">
-                                            <?php
-                                            $st = $r['status_order'];
-                                            if ($st == 'Done'): ?>
-                                                <span class="text-success fw-bold small"><i class="bi bi-check-all fs-5"></i>
-                                                    Selesai</span>
-                                            <?php elseif ($st == 'Selesai'): ?>
-                                                <a href="riwayat.php?id=<?= $id_pelanggan ?>&naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>"
-                                                    class="badge badge-status bg-soft-info text-decoration-none">
-                                                    Siap Ambil <i class="bi bi-chevron-right"></i>
-                                                </a>
-                                            <?php else: ?>
-                                                <a href="riwayat.php?id=<?= $id_pelanggan ?>&naik_status=true&uid=<?= $r['id'] ?>&status=<?= $st ?>"
-                                                    class="badge badge-status bg-soft-warning text-decoration-none">
-                                                    Proses <i class="bi bi-chevron-right"></i>
-                                                </a>
-                                            <?php endif; ?>
-                                        </td>
-
                                         <td class="text-end pe-4 text-nowrap">
                                             <div class="d-flex justify-content-end gap-2">
-
-                                                <?php if ($r['status_pembayaran'] == 'Belum Lunas'): ?>
-                                                    <div class="dropdown d-inline-block">
-                                                        <button class="btn-icon btn-green dropdown-toggle" type="button"
-                                                            data-bs-toggle="dropdown" style="border:none;" title="Pelunasan">
-                                                            <i class="bi bi-check-lg"></i>
-                                                        </button>
-                                                        <ul class="dropdown-menu shadow-sm border-0">
-                                                            <li><a class="dropdown-item"
-                                                                    href="riwayat.php?id=<?= $id_pelanggan ?>&lunasi_item=true&uid=<?= $r['id'] ?>"
-                                                                    onclick="return confirm('Yakin LUNASI item ini saja?')">Lunasi
-                                                                    Item Ini</a></li>
-                                                            <li><a class="dropdown-item"
-                                                                    href="riwayat.php?id=<?= $id_pelanggan ?>&lunasi_nota=true&id_trx=<?= $r['id_transaksi'] ?>"
-                                                                    onclick="return confirm('Yakin LUNASI semua item di Nota #<?= $r['id_transaksi'] ?>?')">Lunasi
-                                                                    Satu Nota</a></li>
-                                                        </ul>
-                                                    </div>
-                                                <?php endif; ?>
-
+                                                
                                                 <a href="../transaksi/edit.php?id=<?= $r['id_transaksi'] ?>"
                                                     class="btn-icon btn-blue" title="Edit"><i
                                                         class="bi bi-pencil-square"></i></a>
-                                                <a href="../transaksi/invoice.php?item_id=<?= $r['id'] ?>"
-                                                    class="btn-icon btn-gray" title="Cetak Item"><i
-                                                        class="bi bi-printer"></i></a>
+                                                
+                                                <a href="../transaksi/invoice.php?id=<?= $r['id_transaksi'] ?>"
+                                                    target="_blank"
+                                                    class="btn-icon btn-gray" title="Cetak Invoice Full">
+                                                    <i class="bi bi-printer"></i>
+                                                </a>
+
                                                 <a href="riwayat.php?id=<?= $id_pelanggan ?>&hapus=true&uid=<?= $r['id'] ?>"
                                                     class="btn-icon btn-red" onclick="return confirm('Hapus item ini?')"
                                                     title="Hapus"><i class="bi bi-trash3"></i></a>
@@ -473,7 +330,7 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                 <?php endwhile; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="8" class="text-center py-5 text-secondary">Belum ada riwayat pesanan.</td>
+                                    <td colspan="6" class="text-center py-5 text-secondary">Belum ada riwayat pesanan.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
