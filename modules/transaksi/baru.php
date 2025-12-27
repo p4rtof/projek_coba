@@ -2,14 +2,6 @@
 include '../../config/koneksi.php'; 
 include '../../auth/auth.php'; 
 
-// --- FUNGSI GENERATE ID ---
-function generateNewId($conn, $table, $prefix, $id_column) {
-    $q_last = pg_query($conn, "SELECT $id_column FROM $table ORDER BY $id_column DESC LIMIT 1");
-    $last_id = pg_fetch_assoc($q_last);
-    $new_id_num = $last_id ? (int)substr($last_id[$id_column], 1) + 1 : 1;
-    return $prefix . str_pad($new_id_num, 3, '0', STR_PAD_LEFT); 
-}
-
 // --- PROSES SIMPAN TRANSAKSI ---
 if (isset($_POST['proses_transaksi'])) {
     $pelanggan_id = $_POST['pelanggan_id'];
@@ -17,6 +9,9 @@ if (isset($_POST['proses_transaksi'])) {
     $jam_sekarang = date('H:i:s');
     $waktu_fix    = $tgl_input . ' ' . $jam_sekarang;
     
+    // [BARU] ID TRANSAKSI MANUAL
+    $id_transaksi_manual = pg_escape_string($conn, $_POST['id_transaksi']);
+
     $status_bayar = $_POST['status_pembayaran'];
     $metode       = $_POST['metode_pembayaran'];
     $id_bank      = ($metode == 'Transfer') ? $_POST['bank_id'] : 'NULL'; 
@@ -60,12 +55,9 @@ if (isset($_POST['proses_transaksi'])) {
         }
         $total_harga_item = $harga_satuan_fix * $jumlah;
 
-        // Generate ID
-        $id_transaksi_baru = generateNewId($conn, 'transaksi', 'T', 'id_transaksi');
-        
-        // Insert DB
+        // Insert DB Menggunakan ID MANUAL (Semua item di loop ini pakai ID yg sama)
         $query = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, status_pembayaran, status_order, panjang, lebar, metode_pembayaran, id_bank) 
-                  VALUES ('$id_transaksi_baru', '$pelanggan_id', '$prod_id', '$waktu_fix', '$jumlah', '$total_harga_item', '$status_bayar', '$status_order', '$panjang', '$lebar', '$metode', $id_bank)";
+                  VALUES ('$id_transaksi_manual', '$pelanggan_id', '$prod_id', '$waktu_fix', '$jumlah', '$total_harga_item', '$status_bayar', '$status_order', '$panjang', '$lebar', '$metode', $id_bank)";
         
         if (pg_query($conn, $query)) {
             // Kurangi Stok
@@ -73,7 +65,7 @@ if (isset($_POST['proses_transaksi'])) {
             pg_query($conn, "UPDATE produk SET stok_bahan = $stok_baru WHERE id_produk = '$prod_id'");
             
             // Simpan ID untuk dicetak
-            $list_id_baru[] = $id_transaksi_baru;
+            $list_id_baru[] = $id_transaksi_manual;
         } else {
             $error_db = true;
         }
@@ -81,18 +73,13 @@ if (isset($_POST['proses_transaksi'])) {
 
     if (!$error_db) {
         // --- REDIRECT KE INVOICE.PHP ---
-        // Kita kirim ID menggunakan Form Hidden otomatis agar bisa POST banyak ID
         echo '<form id="redirectForm" action="invoice.php" method="POST" target="_blank">';
-        foreach($list_id_baru as $id) {
-            echo '<input type="hidden" name="ids[]" value="'.$id.'">';
-        }
+        // Cukup kirim sekali saja karena ID nya sama semua
+        echo '<input type="hidden" name="ids[]" value="'.$id_transaksi_manual.'">';
         echo '</form>';
         
         echo '<script>
-                // Submit form untuk buka invoice di tab baru
                 document.getElementById("redirectForm").submit();
-                
-                // Redirect halaman ini kembali ke index/dashboard
                 setTimeout(function(){ window.location.href = "../../index.php"; }, 500);
               </script>';
     } else {
@@ -110,68 +97,22 @@ if (isset($_POST['proses_transaksi'])) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --secondary: #64748b;
-            --dark: #0f172a;
-            --light: #f8fafc;
-            --border: #e2e8f0;
-            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
+        :root { --primary: #4f46e5; --primary-hover: #4338ca; --secondary: #64748b; --dark: #0f172a; --light: #f8fafc; --border: #e2e8f0; --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); font-size: 0.9rem; }
-        
-        .card-modern {
-            background: white; border: 1px solid white; border-radius: 12px;
-            box-shadow: var(--card-shadow); transition: all 0.2s;
-            overflow: hidden;
-        }
+        .card-modern { background: white; border: 1px solid white; border-radius: 12px; box-shadow: var(--card-shadow); transition: all 0.2s; overflow: hidden; }
         .form-label { font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.2rem; }
-        
-        .form-control-modern, .form-select-modern {
-            border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
-            font-size: 0.9rem; background-color: var(--light); transition: all 0.2s;
-        }
-        .form-control-modern:focus, .form-select-modern:focus { 
-            background-color: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); 
-        }
-
-        .btn-modern {
-            background: var(--primary); color: white; border: none; padding: 10px;
-            border-radius: 8px; font-weight: 700; width: 100%; transition: all 0.2s;
-            box-shadow: 0 2px 4px -1px rgba(79, 70, 229, 0.2);
-            letter-spacing: 0.5px; font-size: 0.95rem;
-        }
+        .form-control-modern, .form-select-modern { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; background-color: var(--light); transition: all 0.2s; }
+        .form-control-modern:focus, .form-select-modern:focus { background-color: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .btn-modern { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; width: 100%; transition: all 0.2s; box-shadow: 0 2px 4px -1px rgba(79, 70, 229, 0.2); letter-spacing: 0.5px; font-size: 0.95rem; }
         .btn-modern:hover { background: var(--primary-hover); transform: translateY(-1px); color: white; }
-
-        .header-gradient {
-            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-            color: white; padding: 15px 20px;
-        }
-
-        /* Radio Button Style */
+        .header-gradient { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; padding: 15px 20px; }
         .radio-card-input { display: none; }
-        .radio-card-label {
-            display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
-            cursor: pointer; border: 1px solid var(--border);
-            border-radius: 10px; padding: 10px 15px; 
-            background: white; transition: all 0.2s ease;
-            height: 100%; text-align: left;
-        }
+        .radio-card-label { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; cursor: pointer; border: 1px solid var(--border); border-radius: 10px; padding: 10px 15px; background: white; transition: all 0.2s ease; height: 100%; text-align: left; }
         .radio-card-label:hover { border-color: #cbd5e1; background: #f8fafc; transform: translateY(-1px); }
-        
-        .radio-card-input:checked + .radio-card-label.label-lunas {
-            border-color: #10b981; background-color: #ecfdf5; color: #059669; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
-        }
-        .radio-card-input:checked + .radio-card-label.label-hutang {
-            border-color: #f59e0b; background-color: #fffbeb; color: #d97706; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
-        }
-        .radio-card-input:checked + .radio-card-label.label-bank {
-            border-color: var(--primary); background-color: #eef2ff; color: var(--primary); box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
-        }
+        .radio-card-input:checked + .radio-card-label.label-lunas { border-color: #10b981; background-color: #ecfdf5; color: #059669; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1); }
+        .radio-card-input:checked + .radio-card-label.label-hutang { border-color: #f59e0b; background-color: #fffbeb; color: #d97706; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1); }
+        .radio-card-input:checked + .radio-card-label.label-bank { border-color: var(--primary); background-color: #eef2ff; color: var(--primary); box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1); }
         .radio-icon { font-size: 1.6rem; margin-right: 12px; margin-bottom: 0; line-height: 1; }
-
-        /* Table */
         .table-cart th { font-size: 0.75rem; text-transform: uppercase; color: #64748b; background: #f8fafc; border-bottom: 1px solid var(--border); }
         .table-cart td { vertical-align: middle; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
     </style>
@@ -205,6 +146,12 @@ if (isset($_POST['proses_transaksi'])) {
                                 <label class="form-label">Tanggal Order</label>
                                 <input type="date" name="tgl_input" class="form-control form-control-modern" value="<?= date('Y-m-d') ?>" required>
                             </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-primary">No. Invoice (Manual)</label>
+                                <input type="text" name="id_transaksi" class="form-control form-control-modern border-primary" required placeholder="Masukan No Invoice...">
+                            </div>
+
                             <div>
                                 <label class="form-label">Pilih Pelanggan</label>
                                 <div class="input-group">
@@ -400,6 +347,7 @@ if (isset($_POST['proses_transaksi'])) {
     </div>
 
     <script>
+        // SCRIPT SAMA SEPERTI SEBELUMNYA
         function cekProduk() {
             let select = document.getElementById('input_produk');
             let option = select.options[select.selectedIndex];

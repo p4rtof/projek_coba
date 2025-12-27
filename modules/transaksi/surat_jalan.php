@@ -19,7 +19,9 @@ if (!empty($REQ_ITEM_ID)) {
     }
 } elseif (!empty($REQ_IDS)) {
     $ids_to_check = $REQ_IDS;
-    $ids_clean = array_map(function($id) use ($conn) { return pg_escape_string($conn, $id); }, $ids_to_check);
+    $ids_clean = array_map(function ($id) use ($conn) {
+        return pg_escape_string($conn, $id);
+    }, $ids_to_check);
     $ids_string = "'" . implode("','", $ids_clean) . "'";
     $where_clause = "WHERE t.id_transaksi IN ($ids_string)";
 } elseif (!empty($REQ_ID)) {
@@ -40,174 +42,273 @@ $query = "SELECT t.*, p.nama AS p_nama, pr.nama_produk
           ORDER BY t.waktu_order ASC";
 
 $result = pg_query($conn, $query);
-if (!$result || pg_num_rows($result) == 0) { die("Data tidak ditemukan."); }
+if (!$result || pg_num_rows($result) == 0) {
+    die("Data tidak ditemukan.");
+}
 
 $first_row = pg_fetch_assoc($result);
 pg_result_seek($result, 0);
 
 // --- [LOGIKA PILIH LOGO & DEFAULT TEXT] ---
-$nama_pelanggan = strtoupper(trim($first_row['p_nama']));
-$is_bayer = (strpos($nama_pelanggan, 'PT. BAYER INDONESIA') !== false);
-
+// Daftar Logo yang Tersedia
 $available_logos = [
-    'Default' => '../../image.png.jpeg',
-    'Awab Print' => '../../awabprint_suratjalan.jpeg', 
-    // 'Bayer' => '../../logo_bayer.png'
+    'Sriwijaya' => '../../image.png.jpeg',
+    'Awab Print' => '../../awabprint_suratjalan.jpeg',
 ];
 
+// Set Default Logo (Penting biar gambar gak broken)
+$logo_src = $available_logos['Sriwijaya'];
 
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-    <title>Surat Jalan</title> 
+    <title>Surat Jalan</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
-        body { background: #525659; font-family: 'Arial', sans-serif; -webkit-print-color-adjust: exact; }
-        
-        .sj-box { 
-            background: white; 
-            padding: 20px; 
-            min-height: 29.7cm; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
+        body {
+            background: #525659;
+            font-family: 'Arial', sans-serif;
+            -webkit-print-color-adjust: exact;
+        }
+
+        .sj-box {
+            background: white;
+            padding: 20px;
+            min-height: 29.7cm;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             margin: 20px auto;
-            max-width: 21cm; 
+            max-width: 21cm;
             position: relative;
         }
 
-        .kop-container { display: flex; align-items: center; gap: 15px; }
-        
-        /* STYLE TEKS HEADER */
-        .kop-text .tagline { font-size: 0.75rem; font-weight: 600; color: #333; margin-bottom: 2px; }
-        .kop-text .pt-name { font-weight: 800; font-size: 0.95rem; color: #000; margin-bottom: 2px; letter-spacing: 0.5px; white-space: nowrap; }
-        .kop-text .address { font-size: 0.8rem; color: #333; margin-bottom: 0; line-height: 1.2; }
+        .kop-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-        /* FITUR EDITABLE */
+        .sj-title {
+            font-weight: 700;
+            font-size: 2rem;
+            text-transform: uppercase;
+            color: #000;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
 
+        .date-label {
+            padding: 2px 15px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-right: 15px;
+        }
 
-        .sj-title { font-weight: 700; font-size: 2rem; text-transform: uppercase; color: #000; letter-spacing: 1px; margin-bottom: 5px; }
-        
-        .date-label { padding: 2px 15px; font-weight: 600; font-size: 0.9rem; display: inline-block; margin-right: 15px; }
-        .date-value { font-weight: bold; font-size: 1rem; }
+        .date-value {
+            font-weight: bold;
+            font-size: 1rem;
+        }
 
-        .table-sj { width: 100%; border-collapse: collapse; border: 2px solid #000; margin-top: 20px; }
-        .table-sj th { border: 1px solid #000; border-bottom: 2px solid #000; padding: 8px; text-align: center; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; }
-        .table-sj td { border: 1px solid #000; padding: 5px 10px; font-size: 0.9rem; vertical-align: top; }
-        
-        .col-no { width: 50px; text-align: center; }
-        .col-qty { width: 150px; text-align: center; }
-        .col-ket { text-align: left; }
+        .table-sj {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #000;
+            margin-top: 20px;
+        }
+
+        .table-sj th {
+            border: 1px solid #000;
+            border-bottom: 2px solid #000;
+            padding: 8px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .table-sj td {
+            border: 1px solid #000;
+            padding: 5px 10px;
+            font-size: 0.9rem;
+            vertical-align: top;
+        }
+
+        .col-no {
+            width: 50px;
+            text-align: center;
+        }
+
+        .col-qty {
+            width: 150px;
+            text-align: center;
+        }
+
+        .col-ket {
+            text-align: left;
+        }
 
         @media print {
-            @page { size: A4; margin: 0; }
-            body { background: white; margin: 1cm; }
-            .no-print { display: none !important; }
-            .sj-box { box-shadow: none; margin: 0; width: 100%; max-width: 100%; padding: 0; min-height: auto; page-break-inside: avoid; }
-            
-            /* Hapus style edit saat print */
-            .editable:hover { background: none; outline: none; }
-            
-            .table-sj { border: 2px solid #000 !important; }
-            .table-sj th, .table-sj td { border: 1px solid #000 !important; }
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            body {
+                background: white;
+                margin: 1cm;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .sj-box {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                min-height: auto;
+                page-break-inside: avoid;
+            }
+
+            .editable:hover {
+                background: none;
+                outline: none;
+            }
+
+            .table-sj {
+                border: 2px solid #000 !important;
+            }
+
+            .table-sj th,
+            .table-sj td {
+                border: 1px solid #000 !important;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<div class="container py-0 py-md-3">
-    
-    <div class="text-end mb-3 mt-2 no-print sticky-top" style="top: 10px; z-index: 100;">
-        <div class="d-flex justify-content-end align-items-center gap-2 bg-white p-2 rounded shadow-sm border d-inline-flex">
-            
-            <?php if(!$is_bayer): ?>
+    <div class="container py-0 py-md-3">
+
+        <div class="text-end mb-3 mt-2 no-print sticky-top" style="top: 10px; z-index: 100;">
+            <div
+                class="d-flex justify-content-end align-items-center gap-2 bg-white p-2 rounded shadow-sm border d-inline-flex">
+
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-warning fw-bold dropdown-toggle text-dark" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-sm btn-warning fw-bold dropdown-toggle text-dark" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-image me-1"></i> Ganti Logo
                     </button>
                     <ul class="dropdown-menu">
-                        <?php foreach($available_logos as $name => $path): ?>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center" href="#" onclick="changeLogo('<?= $path ?>'); return false;">
-                                <img src="<?= $path ?>" style="width: 30px; height: 30px; object-fit: contain; margin-right: 10px;">
-                                <?= $name ?>
-                            </a>
-                        </li>
+                        <?php foreach ($available_logos as $name => $path): ?>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="#"
+                                    onclick="changeLogo('<?= $path ?>'); return false;">
+                                    <img src="<?= $path ?>"
+                                        style="width: 30px; height: 30px; object-fit: contain; margin-right: 10px;">
+                                    <?= $name ?>
+                                </a>
+                            </li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
-            <?php endif; ?>
 
-            <button onclick="window.close()" class="btn btn-sm btn-light border shadow-sm px-3 fw-bold">Tutup</button>
-            <button onclick="window.print()" class="btn btn-sm btn-dark shadow-sm px-4 fw-bold"><i class="bi bi-printer-fill me-2"></i>Cetak</button>
-        </div>
-        <div class="no-print mt-1"><small class="text-white fst-italic" style="font-size: 11px;">*Klik teks header untuk mengedit</small></div>
-    </div>
-
-    <div class="sj-box">
-        
-        <div class="row align-items-start mb-2">
-            <div class="col-7">
-                <div class="kop-container">
-                    <img id="mainLogo" src="<?= $logo_src ?>" alt="Logo" style="width: 230px; object-fit: contain;">
-                    
-                    <!-- <div class="kop-text"> -->
-                        <!-- <div class="tagline editable" contenteditable="true">Digital printing, Paper printing & Promosion</div> -->
-                        <!-- <div class="pt-name editable" contenteditable="true">PT. RHAMIZA PERDANA INDONESIA</div> -->
-                        <!-- <div class="address editable" contenteditable="true">Jl. Basuki Rahmat No A<br>Kec. Jatinegara, Jakarta Timur</div> -->
-                    <!-- </div> -->
-                </div>
+                <button onclick="window.close()"
+                    class="btn btn-sm btn-light border shadow-sm px-3 fw-bold">Tutup</button>
+                <button onclick="window.print()" class="btn btn-sm btn-dark shadow-sm px-4 fw-bold"><i
+                        class="bi bi-printer-fill me-2"></i>Cetak</button>
             </div>
-
-            <div class="col-5 text-end align-self-center">
-                <h1 class="sj-title">SURAT JALAN</h1>
-                <div class="mt-2">
-                    <span class="date-label">Tanggal : </span>
-                    <span class="date-value"><?= date('d /m /Y', strtotime($first_row['waktu_order'])) ?></span>
-                </div>
-            </div>
+            <div class="no-print mt-1"><small class="text-white fst-italic" style="font-size: 11px;">*Klik teks header
+                    untuk mengedit</small></div>
         </div>
 
-        <div style="height: 10px;"></div>
+        <div class="sj-box">
 
-        <table class="table-sj">
-            <thead>
-                <tr>
-                    <th class="col-no">NO</th>
-                    <th class="col-ket">KETERANGAN</th>
-                    <th class="col-qty">QUANTITY</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php 
-                $no = 1;
-                while($row = pg_fetch_assoc($result)): 
-                    $nama_barang = $row['nama_produk'];
-                    if($row['panjang'] > 0) {
-                        $nama_barang .= " (Ukuran: " . floatval($row['panjang']) . "m x " . floatval($row['lebar']) . "m)";
-                    }
-                ?>
-                <tr>
-                    <td class="col-no"><?= $no++ ?></td>
-                    <td class="col-ket fw-bold"><?= $nama_barang ?></td>
-                    <td class="col-qty fw-bold"><?= number_format($row['jumlah']) ?></td>
-                </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
+            <div class="row align-items-start mb-2">
+                <div class="col-7">
+                    <div class="kop-container">
+                        <img id="mainLogo" src="<?= $logo_src ?>" alt="Logo" style="width: 230px; object-fit: contain;">
+                    </div>
+                </div>
 
-        <div style="margin-top: 20px;"></div>
+                <div class="col-5 text-end align-self-center">
+                    <h1 class="sj-title">SURAT JALAN</h1>
 
+                    <table
+                        style="width: auto; margin-left: auto; text-align: left; margin-top: 15px; font-size: 0.95rem;">
+                        <tr>
+                            <td class="fw-bold text-secondary pe-3 pb-1">Tanggal</td>
+                            <td class="fw-bold text-dark pb-1">:
+                                <?php
+                                // Format Tanggal Indo (12 Desember 2025)
+                                $ts = strtotime($first_row['waktu_order']);
+                                $bulan = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                                echo date('d', $ts) . ' ' . $bulan[date('n', $ts)] . ' ' . date('Y', $ts);
+                                ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-secondary pe-3 pb-1">No. Invoice</td>
+                            <td class="fw-bold text-dark pb-1">: <?= $first_row['id_transaksi'] ?></td>
+                        </tr>
+                        <?php if (!empty($first_row['no_po']) && $first_row['no_po'] !== '-'): ?>
+                            <tr>
+                                <td class="fw-bold text-secondary pe-3 pb-1">No. PO</td>
+                                <td class="fw-bold text-dark pb-1">: <?= $first_row['no_po'] ?></td>
+                            </tr>
+                        <?php endif; ?>
+                    </table>
+                </div>
+
+            </div>
+
+            <div style="height: 10px;"></div>
+
+            <table class="table-sj">
+                <thead>
+                    <tr>
+                        <th class="col-no">NO</th>
+                        <th class="col-ket">KETERANGAN</th>
+                        <th class="col-qty">QUANTITY</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $no = 1;
+                    while ($row = pg_fetch_assoc($result)):
+                        $nama_barang = $row['nama_produk'];
+                        if ($row['panjang'] > 0) {
+                            $nama_barang .= " (Ukuran: " . floatval($row['panjang']) . "m x " . floatval($row['lebar']) . "m)";
+                        }
+                        ?>
+                        <tr>
+                            <td class="col-no"><?= $no++ ?></td>
+                            <td class="col-ket fw-bold"><?= $nama_barang ?></td>
+                            <td class="col-qty fw-bold"><?= number_format($row['jumlah']) ?></td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+
+            <div style="margin-top: 20px;"></div>
+
+        </div>
     </div>
-</div>
 
-<script>
-    function changeLogo(path) {
-        document.getElementById('mainLogo').src = path;
-    }
-</script>
+    <script>
+        function changeLogo(path) {
+            document.getElementById('mainLogo').src = path;
+        }
+    </script>
 
 </body>
+
 </html>

@@ -3,26 +3,20 @@ include '../../config/koneksi.php';
 include '../../auth/auth.php';
 
 // --- SET ZONA WAKTU KE WIB (ASIA/JAKARTA) ---
-date_default_timezone_set('Asia/Jakarta'); 
+date_default_timezone_set('Asia/Jakarta');
 
 // TANGKAP ID PELANGGAN DARI URL (AUTO-SELECT)
 $selected_pelanggan = $_GET['id_pelanggan'] ?? '';
-
-// --- FUNGSI GENERATE ID ---
-function generateNewId($conn, $table, $prefix, $id_column)
-{
-    $q_last = pg_query($conn, "SELECT $id_column FROM $table ORDER BY $id_column DESC LIMIT 1");
-    $last_id = pg_fetch_assoc($q_last);
-    $new_id_num = $last_id ? (int) substr($last_id[$id_column], 1) + 1 : 1;
-    return $prefix . str_pad($new_id_num, 3, '0', STR_PAD_LEFT);
-}
 
 // --- PROSES SIMPAN TRANSAKSI ---
 if (isset($_POST['simpan_transaksi'])) {
     $pelanggan_id = $_POST['pelanggan_id'];
     $tgl_input = $_POST['tgl_input'];
-    $no_po = pg_escape_string($conn, $_POST['no_po']); // <-- TAMBAHAN PO
-    
+    $no_po = pg_escape_string($conn, $_POST['no_po']);
+
+    // [BARU] TANGKAP NO INVOICE MANUAL
+    $id_gabungan = pg_escape_string($conn, $_POST['id_transaksi']);
+
     // JAM OTOMATIS MENGIKUTI WAKTU WIB
     $jam_sekarang = date('H:i:s');
     $waktu_fix = $tgl_input . ' ' . $jam_sekarang;
@@ -37,7 +31,13 @@ if (isset($_POST['simpan_transaksi'])) {
         exit;
     }
 
-    $id_gabungan = generateNewId($conn, 'transaksi', 'T', 'id_transaksi');
+    // Cek apakah ID Transaksi sudah ada (Opsional, untuk mencegah duplikat)
+    $cek = pg_query($conn, "SELECT id_transaksi FROM transaksi WHERE id_transaksi = '$id_gabungan' LIMIT 1");
+    if (pg_num_rows($cek) > 0) {
+        // Logika: Jika ID sudah ada, kita tetap lanjutkan (berarti nambah item ke invoice yg sama)
+        // atau bisa di-alert error jika tidak boleh. Di sini kita biarkan lanjut (merge).
+    }
+
     $items = $_POST['produk_id'];
     $error_db = false;
 
@@ -65,7 +65,7 @@ if (isset($_POST['simpan_transaksi'])) {
         }
         $subtotal = $harga_fix * $jumlah;
 
-        // INSERT DENGAN NO_PO
+        // INSERT DENGAN ID MANUAL
         $query = "INSERT INTO transaksi (id_transaksi, id_pelanggan, id_produk, waktu_order, jumlah, total_harga, status_pembayaran, status_order, panjang, lebar, metode_pembayaran, id_bank, no_po) 
                   VALUES ('$id_gabungan', '$pelanggan_id', '$prod_id', '$waktu_fix', '$jumlah', '$subtotal', '$status_bayar', '$status_order', '$panjang', '$lebar', '$metode', $id_bank, '$no_po')";
 
@@ -87,54 +87,197 @@ if (isset($_POST['simpan_transaksi'])) {
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <title>Input Order (Keranjang)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #4f46e5; --primary-hover: #4338ca; --secondary: #64748b; --dark: #0f172a; --light: #f8fafc; --border: #e2e8f0; --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: var(--dark); font-size: 0.9rem; }
-        .card-modern { background: white; border: 1px solid white; border-radius: 12px; box-shadow: var(--card-shadow); transition: all 0.2s; overflow: hidden; }
-        .form-label { font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.2rem; }
-        .form-control-modern, .form-select-modern { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; background-color: var(--light); transition: all 0.2s; }
-        .form-control-modern:focus, .form-select-modern:focus { background-color: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-        .btn-modern { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; width: 100%; transition: all 0.2s; box-shadow: 0 2px 4px -1px rgba(79, 70, 229, 0.2); letter-spacing: 0.5px; font-size: 0.95rem; }
-        .btn-modern:hover { background: var(--primary-hover); transform: translateY(-1px); color: white; }
-        .header-gradient { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; padding: 15px 20px; }
-        .radio-card-input { display: none; }
-        .radio-card-label { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; cursor: pointer; border: 1px solid var(--border); border-radius: 10px; padding: 10px 15px; background: white; transition: all 0.2s ease; height: 100%; text-align: left; }
-        .radio-card-label:hover { border-color: #cbd5e1; background: #f8fafc; transform: translateY(-1px); }
-        .radio-card-input:checked+.radio-card-label.label-lunas { border-color: #10b981; background-color: #ecfdf5; color: #059669; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1); }
-        .radio-card-input:checked+.radio-card-label.label-hutang { border-color: #f59e0b; background-color: #fffbeb; color: #d97706; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1); }
-        .radio-card-input:checked+.radio-card-label.label-bank { border-color: var(--primary); background-color: #eef2ff; color: var(--primary); box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1); }
-        .radio-icon { font-size: 1.6rem; margin-right: 12px; margin-bottom: 0; line-height: 1; }
-        .table-cart th { font-size: 0.75rem; text-transform: uppercase; color: #64748b; background: #f8fafc; border-bottom: 1px solid var(--border); }
-        .table-cart td { vertical-align: middle; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary: #64748b;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+
+        .card-modern {
+            background: white;
+            border: 1px solid white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s;
+            overflow: hidden;
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 0.2rem;
+        }
+
+        .form-control-modern,
+        .form-select-modern {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            background-color: var(--light);
+            transition: all 0.2s;
+        }
+
+        .form-control-modern:focus,
+        .form-select-modern:focus {
+            background-color: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-modern {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            width: 100%;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px -1px rgba(79, 70, 229, 0.2);
+            letter-spacing: 0.5px;
+            font-size: 0.95rem;
+        }
+
+        .btn-modern:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            color: white;
+        }
+
+        .header-gradient {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white;
+            padding: 15px 20px;
+        }
+
+        .radio-card-input {
+            display: none;
+        }
+
+        .radio-card-label {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            background: white;
+            transition: all 0.2s ease;
+            height: 100%;
+            text-align: left;
+        }
+
+        .radio-card-label:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+            transform: translateY(-1px);
+        }
+
+        .radio-card-input:checked+.radio-card-label.label-lunas {
+            border-color: #10b981;
+            background-color: #ecfdf5;
+            color: #059669;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+        }
+
+        .radio-card-input:checked+.radio-card-label.label-hutang {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+            color: #d97706;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);
+        }
+
+        .radio-card-input:checked+.radio-card-label.label-bank {
+            border-color: var(--primary);
+            background-color: #eef2ff;
+            color: var(--primary);
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
+        }
+
+        .radio-icon {
+            font-size: 1.6rem;
+            margin-right: 12px;
+            margin-bottom: 0;
+            line-height: 1;
+        }
+
+        .table-cart th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #64748b;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .table-cart td {
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
     </style>
 </head>
+
 <body>
     <div class="container py-3">
         <form method="POST" id="formTransaksi">
             <div class="d-flex align-items-center mb-3">
-                <a href="../../index.php" class="btn btn-light rounded-circle shadow-sm me-3 border" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-arrow-left text-dark fs-6"></i></a>
-                <div><h5 class="fw-bold m-0 text-dark">Buat Transaksi</h5><small class="text-secondary">Mode Keranjang: Satu ID Invoice untuk Banyak Item</small></div>
+                <a href="../../index.php" class="btn btn-light rounded-circle shadow-sm me-3 border"
+                    style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;"><i
+                        class="bi bi-arrow-left text-dark fs-6"></i></a>
+                <div>
+                    <h5 class="fw-bold m-0 text-dark">Buat Transaksi</h5><small class="text-secondary">Mode Keranjang:
+                        Satu ID Invoice untuk Banyak Item</small>
+                </div>
             </div>
 
             <div class="row g-4">
                 <div class="col-lg-5">
                     <div class="card-modern mb-3">
-                        <div class="header-gradient d-flex justify-content-between align-items-center"><span class="fw-bold"><i class="bi bi-person me-2"></i>Data Pelanggan</span><span class="badge bg-white bg-opacity-25 border border-white border-opacity-25"><?= date('d M Y') ?></span></div>
+                        <div class="header-gradient d-flex justify-content-between align-items-center"><span
+                                class="fw-bold"><i class="bi bi-person me-2"></i>Data Pelanggan</span><span
+                                class="badge bg-white bg-opacity-25 border border-white border-opacity-25"><?= date('d M Y') ?></span>
+                        </div>
                         <div class="card-body p-3">
                             <div class="mb-3">
                                 <label class="form-label">Tanggal Order</label>
-                                <input type="date" name="tgl_input" class="form-control form-control-modern" value="<?= date('Y-m-d') ?>" required>
+                                <input type="date" name="tgl_input" class="form-control form-control-modern"
+                                    value="<?= date('Y-m-d') ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Nomor PO</label>
-                                <input type="text" name="no_po" class="form-control form-control-modern" placeholder="Contoh: PO/2025/XII/001">
+                                <input type="text" name="no_po" class="form-control form-control-modern"
+                                    placeholder="Masukkan No PO">
                             </div>
-                            
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold ">No. Invoice</label>
+                                <input type="text" name="id_transaksi"
+                                    class="form-control form-control-modern border-primary"
+                                    placeholder="Masukan No Invoice..." required>
+                            </div>
+
                             <div>
                                 <label class="form-label">Pilih Pelanggan</label>
                                 <div class="input-group">
@@ -148,38 +291,88 @@ if (isset($_POST['simpan_transaksi'])) {
                                         }
                                         ?>
                                     </select>
-                                    <a href="../pelanggan/index.php" class="btn btn-light border btn-sm pt-2" title="Tambah Pelanggan Baru"><i class="bi bi-plus-lg"></i></a>
+                                    <a href="../pelanggan/index.php" class="btn btn-light border btn-sm pt-2"
+                                        title="Tambah Pelanggan Baru"><i class="bi bi-plus-lg"></i></a>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="card-modern">
-                        <div class="p-3 border-bottom bg-light"><h6 class="fw-bold m-0 text-primary"><i class="bi bi-cart-plus me-2"></i>Input Item</h6></div>
+                        <div class="p-3 border-bottom bg-light">
+                            <h6 class="fw-bold m-0 text-primary"><i class="bi bi-cart-plus me-2"></i>Input Item</h6>
+                        </div>
                         <div class="card-body p-3">
                             <div class="mb-3">
                                 <label class="form-label">Produk / Layanan</label>
-                                <select id="input_produk" class="form-select form-select-modern" onchange="cekProduk()">
-                                    <option value="" data-harga="0" data-jenis="" data-stok="0">-- Pilih Produk --</option>
-                                    <?php
-                                    $qp = pg_query($conn, "SELECT id_produk, nama_produk, harga, jenis_satuan, stok_bahan FROM produk ORDER BY nama_produk ASC");
-                                    while ($pr = pg_fetch_assoc($qp)) {
-                                        echo "<option value='{$pr['id_produk']}' data-nama='{$pr['nama_produk']}' data-harga='{$pr['harga']}' data-jenis='{$pr['jenis_satuan']}' data-stok='{$pr['stok_bahan']}'>{$pr['nama_produk']}</option>";
-                                    }
-                                    ?>
-                                </select>
+
+                                <div class="input-group">
+                                    <select id="input_produk" class="form-select form-select-modern"
+                                        onchange="cekProduk()">
+                                        <option value="" data-harga="0" data-jenis="" data-stok="0">-- Pilih Produk --
+                                        </option>
+                                        <?php
+                                        $qp = pg_query($conn, "SELECT id_produk, nama_produk, harga, jenis_satuan, stok_bahan FROM produk ORDER BY nama_produk ASC");
+                                        while ($pr = pg_fetch_assoc($qp)) {
+                                            echo "<option value='{$pr['id_produk']}' 
+                        data-nama='{$pr['nama_produk']}' 
+                        data-harga='{$pr['harga']}' 
+                        data-jenis='{$pr['jenis_satuan']}' 
+                        data-stok='{$pr['stok_bahan']}'>
+                        {$pr['nama_produk']}
+                      </option>";
+                                        }
+                                        ?>
+                                    </select>
+
+                                    <a href="../produk/index.php" target="_blank" class="btn btn-light border pt-2"
+                                        title="Tambah Produk Baru">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </a>
+                                </div>
+
+                                <div class="text-end mt-1">
+                                    <small><a href="javascript:location.reload()"
+                                            class="text-decoration-none text-secondary" style="font-size: 11px;"><i
+                                                class="bi bi-arrow-clockwise"></i> Refresh List</a></small>
+                                </div>
+
                                 <div id="info_stok" class="mt-2"></div>
                             </div>
-                            <div id="area_ukuran" class="bg-warning bg-opacity-10 p-2 rounded-3 mb-3 border border-warning border-opacity-25" style="display:none;">
-                                <div class="mb-1 text-warning fw-bold small"><i class="bi bi-rulers me-1"></i> Ukuran Custom (Meter)</div>
+                            <div id="area_ukuran"
+                                class="bg-warning bg-opacity-10 p-2 rounded-3 mb-3 border border-warning border-opacity-25"
+                                style="display:none;">
+                                <div class="mb-1 text-warning fw-bold small"><i class="bi bi-rulers me-1"></i> Ukuran
+                                    Custom (Meter)</div>
                                 <div class="row g-2">
-                                    <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text bg-white border-end-0 text-secondary">P</span><input type="number" step="0.01" id="input_p" class="form-control form-control-modern border-start-0 ps-1" value="1"><span class="input-group-text bg-transparent border-0 text-secondary small">m</span></div></div>
-                                    <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text bg-white border-end-0 text-secondary">L</span><input type="number" step="0.01" id="input_l" class="form-control form-control-modern border-start-0 ps-1" value="1"><span class="input-group-text bg-transparent border-0 text-secondary small">m</span></div></div>
+                                    <div class="col-6">
+                                        <div class="input-group input-group-sm"><span
+                                                class="input-group-text bg-white border-end-0 text-secondary">P</span><input
+                                                type="number" step="0.01" id="input_p"
+                                                class="form-control form-control-modern border-start-0 ps-1"
+                                                value="1"><span
+                                                class="input-group-text bg-transparent border-0 text-secondary small">m</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="input-group input-group-sm"><span
+                                                class="input-group-text bg-white border-end-0 text-secondary">L</span><input
+                                                type="number" step="0.01" id="input_l"
+                                                class="form-control form-control-modern border-start-0 ps-1"
+                                                value="1"><span
+                                                class="input-group-text bg-transparent border-0 text-secondary small">m</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row g-2 align-items-end">
-                                <div class="col-4"><label class="form-label">Qty</label><input type="number" id="input_qty" class="form-control form-control-modern text-center fw-bold" value="1" min="1" oninput="validasiStok()"></div>
-                                <div class="col-8"><button type="button" id="btn_tambah" class="btn btn-dark w-100" style="padding: 10px; border-radius: 8px; font-weight: 600;" onclick="tambahKeKeranjang()"><i class="bi bi-plus-lg me-1"></i> Tambah ke Keranjang</button></div>
+                                <div class="col-4"><label class="form-label">Qty</label><input type="number"
+                                        id="input_qty" class="form-control form-control-modern text-center fw-bold"
+                                        value="1" min="1" oninput="validasiStok()"></div>
+                                <div class="col-8"><button type="button" id="btn_tambah" class="btn btn-dark w-100"
+                                        style="padding: 10px; border-radius: 8px; font-weight: 600;"
+                                        onclick="tambahKeKeranjang()"><i class="bi bi-plus-lg me-1"></i> Tambah ke
+                                        Keranjang</button></div>
                             </div>
                         </div>
                     </div>
@@ -187,23 +380,55 @@ if (isset($_POST['simpan_transaksi'])) {
 
                 <div class="col-lg-7">
                     <div class="card-modern h-100 d-flex flex-column">
-                        <div class="header-gradient bg-dark"><div class="d-flex justify-content-between"><span><i class="bi bi-basket me-2"></i> Daftar Belanjaan</span><span id="total_items_badge" class="badge bg-white text-primary">0 Item</span></div></div>
+                        <div class="header-gradient bg-dark">
+                            <div class="d-flex justify-content-between"><span><i class="bi bi-basket me-2"></i> Daftar
+                                    Belanjaan</span><span id="total_items_badge" class="badge bg-white text-primary">0
+                                    Item</span></div>
+                        </div>
                         <div class="card-body p-0 flex-grow-1 table-responsive" style="min-height: 200px;">
                             <table class="table table-cart table-hover mb-0">
-                                <thead><tr><th class="ps-4">Produk</th><th>Detail</th><th class="text-center">Qty</th><th class="text-end">Subtotal</th><th class="text-center pe-3">Aksi</th></tr></thead>
-                                <tbody id="tabel_keranjang"><tr id="row_kosong"><td colspan="5" class="text-center py-5 text-muted small fst-italic"><i class="bi bi-inbox fs-4 d-block mb-1 opacity-50"></i> Belum ada item ditambahkan.</td></tr></tbody>
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">Produk</th>
+                                        <th>Detail</th>
+                                        <th class="text-center">Qty</th>
+                                        <th class="text-end">Subtotal</th>
+                                        <th class="text-center pe-3">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabel_keranjang">
+                                    <tr id="row_kosong">
+                                        <td colspan="5" class="text-center py-5 text-muted small fst-italic"><i
+                                                class="bi bi-inbox fs-4 d-block mb-1 opacity-50"></i> Belum ada item
+                                            ditambahkan.</td>
+                                    </tr>
+                                </tbody>
                             </table>
                         </div>
                         <div class="p-3 bg-light border-top">
-                            <div class="d-flex justify-content-between align-items-end mb-3 px-1"><div class="text-secondary fw-bold small">Total Tagihan</div><h4 class="fw-bold text-success m-0" id="grand_total_display">Rp 0</h4></div>
+                            <div class="d-flex justify-content-between align-items-end mb-3 px-1">
+                                <div class="text-secondary fw-bold small">Total Tagihan</div>
+                                <h4 class="fw-bold text-success m-0" id="grand_total_display">Rp 0</h4>
+                            </div>
                             <div class="mb-3">
                                 <label class="form-label d-block mb-2">Metode Pembayaran</label>
                                 <div class="row g-2">
-                                    <div class="col-6"><input type="radio" class="radio-card-input" name="metode_pembayaran" id="metode1" value="Cash" onclick="cekMetode()" checked><label class="radio-card-label label-bank" for="metode1"><i class="bi bi-cash-coin radio-icon"></i> <div class="fw-bold small">Tunai</div></label></div>
-                                    <div class="col-6"><input type="radio" class="radio-card-input" name="metode_pembayaran" id="metode2" value="Transfer" onclick="cekMetode()"><label class="radio-card-label label-bank" for="metode2"><i class="bi bi-bank radio-icon"></i> <div class="fw-bold small">Transfer</div></label></div>
+                                    <div class="col-6"><input type="radio" class="radio-card-input"
+                                            name="metode_pembayaran" id="metode1" value="Cash" onclick="cekMetode()"
+                                            checked><label class="radio-card-label label-bank" for="metode1"><i
+                                                class="bi bi-cash-coin radio-icon"></i>
+                                            <div class="fw-bold small">Tunai</div>
+                                        </label></div>
+                                    <div class="col-6"><input type="radio" class="radio-card-input"
+                                            name="metode_pembayaran" id="metode2" value="Transfer"
+                                            onclick="cekMetode()"><label class="radio-card-label label-bank"
+                                            for="metode2"><i class="bi bi-bank radio-icon"></i>
+                                            <div class="fw-bold small">Transfer</div>
+                                        </label></div>
                                 </div>
                                 <div id="area_bank" class="mt-2" style="display: none;">
-                                    <div class="p-2 bg-white rounded-3 border"><label class="form-label small mb-2 text-secondary px-1">Pilih Rekening:</label>
+                                    <div class="p-2 bg-white rounded-3 border"><label
+                                            class="form-label small mb-2 text-secondary px-1">Pilih Rekening:</label>
                                         <div class="row g-2">
                                             <?php
                                             $q_bank = pg_query($conn, "SELECT * FROM bank_akun");
@@ -218,11 +443,29 @@ if (isset($_POST['simpan_transaksi'])) {
                             <div class="mb-3">
                                 <label class="form-label mb-2">Status Pembayaran</label>
                                 <div class="row g-2">
-                                    <div class="col-6"><input type="radio" class="radio-card-input" name="status_pembayaran" id="status_lunas" value="Lunas" checked><label class="radio-card-label label-lunas" for="status_lunas"><i class="bi bi-check-circle-fill radio-icon"></i><div><div class="fw-bold small">LUNAS</div><div class="small opacity-75" style="font-size: 0.7rem;">Sudah Bayar</div></div></label></div>
-                                    <div class="col-6"><input type="radio" class="radio-card-input" name="status_pembayaran" id="status_hutang" value="Belum Lunas"><label class="radio-card-label label-hutang" for="status_hutang"><i class="bi bi-hourglass-split radio-icon"></i><div><div class="fw-bold small">BELUM LUNAS</div><div class="small opacity-75" style="font-size: 0.7rem;">Hutang</div></div></label></div>
+                                    <div class="col-6"><input type="radio" class="radio-card-input"
+                                            name="status_pembayaran" id="status_lunas" value="Lunas" checked><label
+                                            class="radio-card-label label-lunas" for="status_lunas"><i
+                                                class="bi bi-check-circle-fill radio-icon"></i>
+                                            <div>
+                                                <div class="fw-bold small">LUNAS</div>
+                                                <div class="small opacity-75" style="font-size: 0.7rem;">Sudah Bayar
+                                                </div>
+                                            </div>
+                                        </label></div>
+                                    <div class="col-6"><input type="radio" class="radio-card-input"
+                                            name="status_pembayaran" id="status_hutang" value="Belum Lunas"><label
+                                            class="radio-card-label label-hutang" for="status_hutang"><i
+                                                class="bi bi-hourglass-split radio-icon"></i>
+                                            <div>
+                                                <div class="fw-bold small">BELUM LUNAS</div>
+                                                <div class="small opacity-75" style="font-size: 0.7rem;">Hutang</div>
+                                            </div>
+                                        </label></div>
                                 </div>
                             </div>
-                            <button type="submit" name="simpan_transaksi" class="btn-modern py-3"><i class="bi bi-printer-fill me-2"></i> SIMPAN & CETAK INVOICE</button>
+                            <button type="submit" name="simpan_transaksi" class="btn-modern py-3"><i
+                                    class="bi bi-printer-fill me-2"></i> SIMPAN & CETAK INVOICE</button>
                         </div>
                     </div>
                 </div>
@@ -350,4 +593,5 @@ if (isset($_POST['simpan_transaksi'])) {
         });
     </script>
 </body>
+
 </html>

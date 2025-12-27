@@ -123,12 +123,12 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
                             <label class="form-label">Nomor WhatsApp / HP</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0 text-secondary" style="border: 1px solid var(--border); border-radius: 10px 0 0 10px;"><i class="bi bi-telephone"></i></span>
-                                <input type="number" name="hp" class="form-control form-control-modern border-start-0 ps-2" style="border-radius: 0 10px 10px 0;" placeholder="0812..." value="<?= $edit_data['hp'] ?? '' ?>" required>
+                                <input type="number" name="hp" class="form-control form-control-modern border-start-0 ps-2" style="border-radius: 0 10px 10px 0;" placeholder="0812..." value="<?= $edit_data['hp'] ?? '' ?>" >
                             </div>
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Alamat Lengkap</label>
-                            <textarea name="alamat" class="form-control form-control-modern" rows="3" placeholder="Jalan, RT/RW, Kota..." required><?= $edit_data['alamat'] ?? '' ?></textarea>
+                            <textarea name="alamat" class="form-control form-control-modern" rows="3" placeholder="Jalan, RT/RW, Kota..." ><?= $edit_data['alamat'] ?? '' ?></textarea>
                         </div>
                         <button type="submit" name="simpan" class="btn-modern"><i class="bi bi-check-lg me-2"></i> <?= $edit_data ? 'Simpan Perubahan' : 'Simpan Pelanggan' ?></button>
                         <?php if ($edit_data): ?>
@@ -185,13 +185,24 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
-                                        <div class="d-flex align-items-center mb-1">
-                                            <i class="bi bi-whatsapp text-success me-2"></i>
-                                            <a href="https://wa.me/<?= $row['hp'] ?>" target="_blank" class="text-decoration-none text-dark fw-medium small"><?= $row['hp'] ?></a>
-                                        </div>
-                                        <div class="text-secondary small text-truncate" style="max-width: 250px;"><i class="bi bi-geo-alt me-1 opacity-50"></i> <?= $row['alamat'] ?></div>
-                                    </td>
+<td>
+    <?php if (!empty($row['hp']) && $row['hp'] !== '-'): ?>
+        <div class="d-flex align-items-center mb-1">
+            <i class="bi bi-whatsapp text-success me-2"></i>
+            <a href="https://wa.me/<?= $row['hp'] ?>" target="_blank" class="text-decoration-none text-dark fw-medium small">
+                <?= $row['hp'] ?>
+            </a>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!empty($row['alamat'])): ?>
+        <div class="text-secondary small lh-sm">
+            <i class="bi bi-geo-alt me-1 opacity-50"></i> <?= $row['alamat'] ?>
+        </div>
+    <?php else: ?>
+        <span class="text-muted small">-</span>
+    <?php endif; ?>
+</td>
                                     <td class="text-end pe-4">
                                         <div class="d-flex justify-content-end gap-2">
                                             <a href="riwayat.php?id=<?= $row['id_pelanggan'] ?>" class="btn-icon btn-gray" title="Riwayat"><i class="bi bi-clock-history"></i></a>

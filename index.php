@@ -47,7 +47,7 @@ if (isset($_GET['hapus']) && isset($_GET['uid'])) {
 }
 
 // --- FILTER & PAGINATION ---
-$limit = 10;
+$limit = 25;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 

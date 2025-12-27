@@ -48,11 +48,11 @@ include '../../auth/auth.php';
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">No. Telp</label>
-                            <input type="text" name="penerima_hp" class="form-control" placeholder="08..." required>
+                            <input type="text" name="penerima_hp" class="form-control" placeholder="08...">
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Alamat Penerima</label>
-                            <textarea name="penerima_alamat" class="form-control" rows="3" required></textarea>
+                            <textarea name="penerima_alamat" class="form-control" rows="3" ></textarea>
                         </div>
                     </div>
                 </div>
