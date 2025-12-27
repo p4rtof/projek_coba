@@ -133,7 +133,7 @@ $logo_src = $available_logos['Sriwijaya'];
 
         .table-sj td {
             border: 1px solid #000;
-            padding: 5px 10px;
+            padding: 3.5px 10px;
             font-size: 0.9rem;
             vertical-align: top;
         }

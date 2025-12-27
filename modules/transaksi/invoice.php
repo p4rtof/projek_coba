@@ -136,8 +136,8 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
         .table-sm td,
         .table-sm th {
             font-size: 0.85rem;
-            vertical-align: top;
-            padding: 3px 5px !important;
+            vertical-align: middle; /* Ubah ke middle biar rapi */
+            padding: 4px 5px !important;
             border-color: #ffffffff !important;
         }
 
@@ -296,7 +296,7 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                                     <td class="fw-bold text-secondary pe-3 pb-1">Tanggal</td>
                                     <td class="fw-bold text-dark pb-1">:
                                         <?php
-                                        // Format Tanggal Indo (12 Desember 2025)
+                                        // Format Tanggal Indo
                                         $ts = strtotime($first_row['waktu_order']);
                                         $bulan = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                                         echo date('d', $ts) . ' ' . $bulan[date('n', $ts)] . ' ' . date('Y', $ts);
@@ -345,18 +345,20 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                             <tbody>
                                 <?php $grand_total = 0;
                                 while ($row = pg_fetch_assoc($result)):
-                                    $grand_total += $row['total_harga']; ?>
-                                    <tr>
+                                    $grand_total += $row['total_harga']; 
+                                    
+                                    // [MODIFIKASI] Gabungkan Nama Produk dan Ukuran
+                                    $nama_barang = $row['nama_produk'];
+                                    if($row['panjang'] > 0) {
+                                        $nama_barang .= " (Ukuran: " . floatval($row['panjang']) . "m x " . floatval($row['lebar']) . "m)";
+                                    }
+                                ?>
+                                    <tr style="height: 5px;">
                                         <td class="text-start">
-                                            <span class="fw-bold text-dark small"><?= $row['nama_produk'] ?></span>
+                                            <span class="fw-bold text-dark small"><?= $nama_barang ?></span>
                                             <?php if (isset($_GET['item_id'])): ?><br><small class="text-muted"
                                                     style="font-size: 0.65rem;">Ref:
                                                     #<?= $row['id_transaksi'] ?></small><?php endif; ?>
-                                            <?php if ($row['panjang'] > 0): ?>
-                                                <div class="text-muted fst-italic" style="font-size: 0.7rem; margin-top: 1px;">
-                                                    Ukuran: <?= floatval($row['panjang']) ?>m x <?= floatval($row['lebar']) ?>m
-                                                </div>
-                                            <?php endif; ?>
                                         </td>
                                         <td class="text-center small fw-bold"><?= number_format($row['jumlah']) ?></td>
                                         <td class="text-end small">Rp

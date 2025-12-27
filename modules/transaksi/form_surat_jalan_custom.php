@@ -12,7 +12,7 @@ include '../../auth/auth.php';
     <style>
         body { background-color: #f1f5f9; font-family: sans-serif; }
         .card-modern { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: none; }
-        .header-gradient { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; padding: 15px 20px; border-radius: 12px 12px 0 0; }
+        .header-gradient { background: linear-gradient(135deg, #2c21faff 0%, #6063ffff 100%); color: white; padding: 15px 20px; border-radius: 12px 12px 0 0; }
         .table-input th { background-color: #f8fafc; font-size: 0.85rem; }
         .form-control-sm { border-radius: 4px; }
         .btn-add-col { border-style: dashed; border-width: 2px; }
