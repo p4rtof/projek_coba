@@ -61,8 +61,8 @@ $nama_pelanggan = strtoupper(trim($first_row['p_nama']));
 $is_bayer = (strpos($nama_pelanggan, 'PT. BAYER INDONESIA') !== false);
 
 $available_logos = [
-    'Sriwijaya Print' => '../../logo.png.jpeg',
-    'Awab Print' => '../../awabprint.jpeg',
+    'Sriwijaya Print' => '../../logo/logo.png.jpeg',
+    'Awab Print' => '../../logo/awabprint.jpeg',
 ];
 
 // Set Logo Awal

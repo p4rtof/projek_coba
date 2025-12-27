@@ -95,7 +95,7 @@
     <div class="container">
         <a class="navbar-brand fw-bold fs-4 text-primary" href="/projek_coba/index.php">
             <a class="navbar-brand fw-bold fs-4 text-primary" href="/projek_coba/index.php">
-                <img src="/projek_coba/awabprint.jpeg" alt="Print" style="height: auto; width: 200px;">
+                <img src="/projek_coba/logo/awabprint.jpeg" alt="Print" style="height: auto; width: 200px;">
             </a>
             <!-- <i class="bi me-2 bg-primary text-white p-2 rounded-3 fs-6"></i> Printing -->
         </a>

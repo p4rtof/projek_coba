@@ -151,7 +151,7 @@ $tanggal_indo = date('d', $ts) . ' ' . $bulan_indo[date('n', $ts)] . ' ' . date(
         <div class="row mb-4">
             <div class="col-6">
                 <div class="d-flex align-items-center mb-2">
-                    <img src="../../image.png.jpeg" alt="Logo" style="width: 280px; object-fit: contain;">
+                    <img src="../../logo/image.png.jpeg" alt="Logo" style="width: 280px; object-fit: contain;">
                 </div>
             </div>
 

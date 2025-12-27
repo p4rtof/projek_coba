@@ -52,8 +52,8 @@ pg_result_seek($result, 0);
 // --- [LOGIKA PILIH LOGO & DEFAULT TEXT] ---
 // Daftar Logo yang Tersedia
 $available_logos = [
-    'Sriwijaya' => '../../image.png.jpeg',
-    'Awab Print' => '../../awabprint_suratjalan.jpeg',
+    'Sriwijaya' => '../../logo/image.png.jpeg',
+    'Awab Print' => '../../logo/awabprint_suratjalan.jpeg',
 ];
 
 // Set Default Logo (Penting biar gambar gak broken)
