@@ -7,7 +7,7 @@ $where_clause = "";
 $mode_judul = "";
 $ids_to_check = [];
 
-// [BARU] Variabel penampung parameter untuk link Surat Jalan
+// Variabel penampung parameter untuk link Surat Jalan
 $params_sj = []; 
 
 if (isset($_GET['item_id'])) {
@@ -16,19 +16,19 @@ if (isset($_GET['item_id'])) {
     if ($r = pg_fetch_assoc($q_cek)) {
         $ids_to_check[] = $r['id_transaksi'];
         $where_clause = "WHERE t.id = '$uid'";
-        $params_sj[] = "item_id=" . urlencode($_GET['item_id']); // Simpan param
+        $params_sj[] = "item_id=" . urlencode($_GET['item_id']); 
     }
 } elseif (isset($_POST['ids']) && !empty($_POST['ids'])) {
     $ids_to_check = $_POST['ids'];
     $ids_clean = array_map(function($id) use ($conn) { return pg_escape_string($conn, $id); }, $ids_to_check);
     $ids_string = "'" . implode("','", $ids_clean) . "'";
     $where_clause = "WHERE t.id_transaksi IN ($ids_string)";
-    foreach($_POST['ids'] as $id) $params_sj[] = "ids[]=" . urlencode($id); // Simpan param
+    foreach($_POST['ids'] as $id) $params_sj[] = "ids[]=" . urlencode($id);
 } elseif (isset($_GET['id'])) {
     $id_trx = pg_escape_string($conn, $_GET['id']);
     $ids_to_check[] = $id_trx;
     $where_clause = "WHERE t.id_transaksi = '$id_trx'";
-    $params_sj[] = "id=" . urlencode($_GET['id']); // Simpan param
+    $params_sj[] = "id=" . urlencode($_GET['id']);
 } else {
     echo "<script>alert('Data transaksi tidak ditemukan!'); history.back();</script>";
     exit;
@@ -41,7 +41,7 @@ if (count($unique_ids) === 1) {
     $mode_judul = "#GABUNGAN";
 }
 
-// [BARU] Membuat URL Final ke Surat Jalan
+// Membuat URL Final ke Surat Jalan
 $link_surat_jalan = "surat_jalan.php?" . implode("&", $params_sj);
 
 // --- 3. QUERY DATA UTAMA ---
@@ -165,7 +165,7 @@ pg_result_seek($result, 0);
             <div class="text-end mb-3 mt-2 no-print gap-2 d-flex justify-content-end sticky-top" style="top: 10px; z-index: 100;">
                 <a href="javascript:history.back()" class="btn btn-sm btn-light border shadow-sm px-3 fw-bold"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
                 
-                <a href="<?= $link_surat_jalan ?>"  class="btn btn-sm btn-dark shadow-sm px-3 fw-bold"><i class="bi bi-truck me-1"></i>Surat Jalan</a>
+                <a href="<?= $link_surat_jalan ?>" target="_blank" class="btn btn-sm btn-dark shadow-sm px-3 fw-bold"><i class="bi bi-truck me-1"></i>Surat Jalan</a>
                 
                 <button onclick="window.print()" class="btn btn-sm btn-primary shadow-sm px-4 fw-bold"><i class="bi bi-printer-fill me-1"></i>Cetak</button>
             </div>
