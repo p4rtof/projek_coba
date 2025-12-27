@@ -2,12 +2,10 @@
 include '../../config/koneksi.php';
 include '../../auth/auth.php';
 
-// --- 1. LOGIKA MENANGKAP ID ---
+// --- LOGIKA MENANGKAP ID ---
 $where_clause = "";
 $mode_judul = "";
 $ids_to_check = [];
-
-// Variabel penampung parameter untuk link Surat Jalan
 $params_sj = []; 
 
 if (isset($_GET['item_id'])) {
@@ -35,16 +33,10 @@ if (isset($_GET['item_id'])) {
 }
 
 $unique_ids = array_unique($ids_to_check);
-if (count($unique_ids) === 1) {
-    $mode_judul = "#" . reset($unique_ids);
-} else {
-    $mode_judul = "#GABUNGAN";
-}
-
-// Membuat URL Final ke Surat Jalan
+$mode_judul = (count($unique_ids) === 1) ? "#" . reset($unique_ids) : "#GABUNGAN";
 $link_surat_jalan = "surat_jalan.php?" . implode("&", $params_sj);
 
-// --- 3. QUERY DATA UTAMA ---
+// --- QUERY DATA UTAMA ---
 $query = "SELECT t.*, p.nama AS p_nama, p.hp, p.alamat, pr.nama_produk, pr.harga AS harga_satuan, b.nama_bank, b.no_rekening, b.atas_nama 
           FROM transaksi t 
           JOIN pelanggan p ON t.id_pelanggan=p.id_pelanggan 
@@ -58,6 +50,18 @@ if (!$result || pg_num_rows($result) == 0) { die("Data invoice tidak ditemukan."
 
 $first_row = pg_fetch_assoc($result);
 pg_result_seek($result, 0); 
+
+// --- [LOGIKA PILIH LOGO & TEKS DEFAULT] ---
+$nama_pelanggan = strtoupper(trim($first_row['p_nama']));
+$is_bayer = (strpos($nama_pelanggan, 'PT. BAYER INDONESIA') !== false);
+
+$available_logos = [
+    'Sriwijaya Print' => '../../logo.png.jpeg',
+    'Awab Print' => '../../awabprint.jpeg', 
+    // 'Bayer' => '../../logo_bayer.png'
+];
+
+
 ?>
 
 <!DOCTYPE html>
@@ -66,89 +70,41 @@ pg_result_seek($result, 0);
     <title>Invoice <?= $mode_judul ?></title> 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
-        /* STYLE LAYAR (PREVIEW) */
-        body { 
-            background: #525659; 
-            font-family: sans-serif; 
-            -webkit-print-color-adjust: exact; 
-        }
-        
-        .container {
-            max-width: 820px; 
-        }
-
-        .invoice-box { 
-            background: white; 
-            padding: 30px 60px; /* Margin dalam layar biasa */
-            min-height: 29.7cm; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
-            margin: 20px auto;
-        }
-
-        .payment-box { 
-            background: #f8f9fa; 
-            border: 1px solid #dee2e6; 
-            border-radius: 6px; 
-            padding: 8px 12px; 
-            font-size: 0.85rem; 
-        }
+        /* STYLE LAYAR */
+        body { background: #525659; font-family: sans-serif; -webkit-print-color-adjust: exact; }
+        .container { max-width: 820px; }
+        .invoice-box { background: white; padding: 30px 60px; min-height: 29.7cm; box-shadow: 0 0 20px rgba(0,0,0,0.5); margin: 20px auto; }
+        .payment-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 8px 12px; font-size: 0.85rem; }
         
         /* KOP SURAT */
-        .kop-surat .tagline { 
-            font-size: 0.75rem; 
-            font-weight: 600; 
-            color: #333; 
-            margin-bottom: 3px; 
-        }
-        .kop-surat .pt-name { 
-            font-weight: 700; 
-            font-size: 0.8rem; 
-            color: #000; 
-            margin-bottom: 2px; 
-            letter-spacing: 0.5px;
-            white-space: nowrap; 
-        }
-        .kop-surat .address { 
-            font-size: 0.8rem; 
-            color: #333; 
-            margin-bottom: 0; 
-            line-height: 1.4; 
+        .kop-surat .tagline { font-size: 0.75rem; font-weight: 600; color: #333; margin-bottom: 3px; }
+        .kop-surat .pt-name { font-weight: 700; font-size: 0.8rem; color: #000; margin-bottom: 2px; letter-spacing: 0.5px; white-space: nowrap; }
+        .kop-surat .address { font-size: 0.8rem; color: #333; margin-bottom: 0; line-height: 1.4; }
+
+        /* FITUR EDITABLE (Agar user tahu teks bisa diklik) */
+        .editable:hover {
+            background-color: #fffeca;
+            cursor: text;
+            outline: 1px dashed #ccc;
         }
 
-        /* FONT TABEL LEBIH RAPAT (DEMPET) */
-        .table-sm td, .table-sm th { 
-            font-size: 0.85rem; 
-            vertical-align: top; 
-            padding: 3px 5px !important; 
-            border-color: #ffffffff !important;
-        }
+        .table-sm td, .table-sm th { font-size: 0.85rem; vertical-align: top; padding: 3px 5px !important; border-color: #ffffffff !important; }
 
-        /* --- SETTING CETAK (PRINT) --- */
+        /* SETTING PRINT */
         @media print {
-            @page { 
-                size: A4; 
-                margin: 0; 
-            } 
-            
-            body { 
-                background: white; 
-                margin: 1cm 2.5cm; 
-            }
-            
+            @page { size: A4; margin: 0; } 
+            body { background: white; margin: 1cm 2.5cm; }
             .no-print { display: none !important; }
-            
             .container { max-width: 100%; width: 100%; padding: 0; margin: 0; }
-            .invoice-box { 
-                box-shadow: none; border: none; 
-                padding: 0; 
-                margin: 0; 
-                width: 100%; 
-                min-height: auto;
-            }
+            .invoice-box { box-shadow: none; border: none; padding: 0; margin: 0; width: 100%; min-height: auto; }
+            
+            /* Pastikan style edit hilang saat print */
+            .editable:hover { background: none; outline: none; }
+            
             .pt-name { font-size: 11pt !important; }
             .address { font-size: 9pt !important; }
-            
             td, th { font-size: 9pt !important; padding: 2px 4px !important; }
             img { height: 50px !important; } 
             h2 { font-size: 1.5rem !important; }
@@ -162,21 +118,49 @@ pg_result_seek($result, 0);
     <div class="row justify-content-center">
         <div class="col-12">
             
-            <div class="text-end mb-3 mt-2 no-print gap-2 d-flex justify-content-end sticky-top" style="top: 10px; z-index: 100;">
-                <a href="javascript:history.back()" class="btn btn-sm btn-light border shadow-sm px-3 fw-bold"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
-                
-                <a href="<?= $link_surat_jalan ?>" target="_blank" class="btn btn-sm btn-dark shadow-sm px-3 fw-bold"><i class="bi bi-truck me-1"></i>Surat Jalan</a>
-                
-                <button onclick="window.print()" class="btn btn-sm btn-primary shadow-sm px-4 fw-bold"><i class="bi bi-printer-fill me-1"></i>Cetak</button>
+            <div class="mb-3 mt-2 no-print sticky-top bg-transparent" style="top: 10px; z-index: 100;">
+                <div class="d-flex justify-content-between align-items-center bg-white p-2 rounded shadow-sm border">
+                    
+                    <div>
+                        <?php if(!$is_bayer): ?>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-warning fw-bold dropdown-toggle text-dark" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-image me-1"></i> Ganti Logo
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <?php foreach($available_logos as $name => $path): ?>
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-center" href="#" onclick="changeLogo('<?= $path ?>'); return false;">
+                                            <img src="<?= $path ?>" style="width: 30px; height: 30px; object-fit: contain; margin-right: 10px;">
+                                            <?= $name ?>
+                                        </a>
+                                    </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php else: ?>
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Auto: Bayer</span>
+                        <?php endif; ?>
+                        
+                        <small class="text-muted ms-2 fst-italic no-print" style="font-size: 10px;">*Teks kop surat bisa diklik & diedit</small>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a href="javascript:history.back()" class="btn btn-sm btn-light border fw-bold"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+                        <a href="<?= $link_surat_jalan ?>" target="_blank" class="btn btn-sm btn-dark fw-bold"><i class="bi bi-truck me-1"></i>Surat Jalan</a>
+                        <button onclick="window.print()" class="btn btn-sm btn-primary fw-bold"><i class="bi bi-printer-fill me-1"></i>Cetak</button>
+                    </div>
+                </div>
             </div>
 
             <div class="invoice-box">
                 <div class="d-flex justify-content-between align-items-start mb-4 border-bottom pb-3" style="border-bottom: 2px solid #000 !important;">
                     <div class="d-flex align-items-center">
-                        <img src="../../logo.png.jpeg" alt="Logo" style="height: 40px; object-fit: contain; margin-right: 20px;">
+                        <img id="mainLogo" src="<?= $logo_src ?>" alt="Logo" style="height: 40px; object-fit: contain; margin-right: 20px;">
+                        
                         <div class="kop-surat">
-                            <div class="pt-name">PT. RHAMIZA PERDANA INDONESIA</div>
-                            <p class="address">Jl. Basuki Rahmat No A<br>Kec. Jatinegara, Jakarta Timur</p>
+                            <div class="pt-name editable" contenteditable="true">PT. RHAMIZA PERDANA INDONESIA</div>
+                            <p class="address editable" contenteditable="true">Jl. Basuki Rahmat No A<br>Kec. Jatinegara, Jakarta Timur</p>
                         </div>
                     </div>
                     <div class="text-end align-self-center">
@@ -275,5 +259,12 @@ pg_result_seek($result, 0);
         </div>
     </div>
 </div>
+
+<script>
+    function changeLogo(path) {
+        document.getElementById('mainLogo').src = path;
+    }
+</script>
+
 </body>
 </html>
