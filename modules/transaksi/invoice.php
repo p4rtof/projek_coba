@@ -7,22 +7,28 @@ $where_clause = "";
 $mode_judul = "";
 $ids_to_check = [];
 
+// [BARU] Variabel penampung parameter untuk link Surat Jalan
+$params_sj = []; 
+
 if (isset($_GET['item_id'])) {
     $uid = pg_escape_string($conn, $_GET['item_id']);
     $q_cek = pg_query($conn, "SELECT id_transaksi FROM transaksi WHERE id = '$uid'");
     if ($r = pg_fetch_assoc($q_cek)) {
         $ids_to_check[] = $r['id_transaksi'];
         $where_clause = "WHERE t.id = '$uid'";
+        $params_sj[] = "item_id=" . urlencode($_GET['item_id']); // Simpan param
     }
 } elseif (isset($_POST['ids']) && !empty($_POST['ids'])) {
     $ids_to_check = $_POST['ids'];
     $ids_clean = array_map(function($id) use ($conn) { return pg_escape_string($conn, $id); }, $ids_to_check);
     $ids_string = "'" . implode("','", $ids_clean) . "'";
     $where_clause = "WHERE t.id_transaksi IN ($ids_string)";
+    foreach($_POST['ids'] as $id) $params_sj[] = "ids[]=" . urlencode($id); // Simpan param
 } elseif (isset($_GET['id'])) {
     $id_trx = pg_escape_string($conn, $_GET['id']);
     $ids_to_check[] = $id_trx;
     $where_clause = "WHERE t.id_transaksi = '$id_trx'";
+    $params_sj[] = "id=" . urlencode($_GET['id']); // Simpan param
 } else {
     echo "<script>alert('Data transaksi tidak ditemukan!'); history.back();</script>";
     exit;
@@ -34,6 +40,9 @@ if (count($unique_ids) === 1) {
 } else {
     $mode_judul = "#GABUNGAN";
 }
+
+// [BARU] Membuat URL Final ke Surat Jalan
+$link_surat_jalan = "surat_jalan.php?" . implode("&", $params_sj);
 
 // --- 3. QUERY DATA UTAMA ---
 $query = "SELECT t.*, p.nama AS p_nama, p.hp, p.alamat, pr.nama_produk, pr.harga AS harga_satuan, b.nama_bank, b.no_rekening, b.atas_nama 
@@ -98,7 +107,7 @@ pg_result_seek($result, 0);
             color: #000; 
             margin-bottom: 2px; 
             letter-spacing: 0.5px;
-            white-space: nowrap; /* PENTING: Agar teks tidak turun ke bawah */
+            white-space: nowrap; 
         }
         .kop-surat .address { 
             font-size: 0.8rem; 
@@ -119,12 +128,12 @@ pg_result_seek($result, 0);
         @media print {
             @page { 
                 size: A4; 
-                margin: 0; /* Menghilangkan header/footer browser */
+                margin: 0; 
             } 
             
             body { 
                 background: white; 
-                margin: 1cm 2.5cm; /* Margin konten invoice */
+                margin: 1cm 2.5cm; 
             }
             
             .no-print { display: none !important; }
@@ -140,7 +149,6 @@ pg_result_seek($result, 0);
             .pt-name { font-size: 11pt !important; }
             .address { font-size: 9pt !important; }
             
-            /* Print lebih rapat lagi */
             td, th { font-size: 9pt !important; padding: 2px 4px !important; }
             img { height: 50px !important; } 
             h2 { font-size: 1.5rem !important; }
@@ -156,6 +164,9 @@ pg_result_seek($result, 0);
             
             <div class="text-end mb-3 mt-2 no-print gap-2 d-flex justify-content-end sticky-top" style="top: 10px; z-index: 100;">
                 <a href="javascript:history.back()" class="btn btn-sm btn-light border shadow-sm px-3 fw-bold"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+                
+                <a href="<?= $link_surat_jalan ?>"  class="btn btn-sm btn-dark shadow-sm px-3 fw-bold"><i class="bi bi-truck me-1"></i>Surat Jalan</a>
+                
                 <button onclick="window.print()" class="btn btn-sm btn-primary shadow-sm px-4 fw-bold"><i class="bi bi-printer-fill me-1"></i>Cetak</button>
             </div>
 
@@ -164,7 +175,6 @@ pg_result_seek($result, 0);
                     <div class="d-flex align-items-center">
                         <img src="../../logo.png.jpeg" alt="Logo" style="height: 40px; object-fit: contain; margin-right: 20px;">
                         <div class="kop-surat">
-                            <!-- <div class="tagline">Digital printing, Paper printing & Promosion</div> -->
                             <div class="pt-name">PT. RHAMIZA PERDANA INDONESIA</div>
                             <p class="address">Jl. Basuki Rahmat No A<br>Kec. Jatinegara, Jakarta Timur</p>
                         </div>
@@ -254,14 +264,9 @@ pg_result_seek($result, 0);
 
                 <div class="row mt-5">
                     <div class="col-6 text-center">
-                        <p class="mb-5 fw-bold small text-dark" style="font-size: 0.8rem;">TANDA TERIMA</p>
-                        <!-- <br>
-                        <p class="fw-bold mb-0 text-dark small">.....................................</p> -->
-                    </div>
-                    <div class="col-6 text-center">
                         <p class="mb-5 fw-bold small text-dark" style="font-size: 0.8rem;">HORMAT KAMI</p>
-                        <!-- <br>
-                        <p class="fw-bold mb-0 text-decoration-underline text-dark small">(.................................)</p> -->
+                        <br>
+                        <p class="fw-bold mb-0 text-decoration-underline text-dark small">(FARZA)</p>
                     </div>
                 </div>
 
