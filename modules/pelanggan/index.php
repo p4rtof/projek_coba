@@ -66,10 +66,10 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
         .form-control-modern:focus { background-color: white; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
         .btn-modern { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; width: 100%; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }
         .btn-modern:hover { background: var(--primary-hover); transform: translateY(-2px); }
-        .table-custom { margin: 0; }
+        .table-custom { margin: 0; table-layout: fixed; width: 100%; } /* TABLE LAYOUT FIXED */
         .table-custom thead th { background: #f8fafc; color: var(--secondary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 24px; border-bottom: 1px solid var(--border); }
-        .table-custom tbody td { padding: 16px 24px; vertical-align: middle; font-size: 0.95rem; border-bottom: 1px solid var(--border); color: var(--dark); }
-        .avatar-circle { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 16px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2); }
+        .table-custom tbody td { padding: 16px 24px; vertical-align: middle; font-size: 0.95rem; border-bottom: 1px solid var(--border); color: var(--dark); white-space: normal; } /* White-space normal agar alamat wrap ke bawah */
+        .avatar-circle { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 16px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2); flex-shrink: 0; }
         .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: none; transition: all 0.2s; cursor: pointer; text-decoration: none; color: white !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .btn-icon:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
         .btn-gray { background-color: #38be4eff; } .btn-blue { background-color: #3b82f6; } .btn-red { background-color: #ef4444; }
@@ -154,9 +154,9 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
                         <table class="table table-custom mb-0">
                             <thead>
                                 <tr>
-                                    <th class="ps-4">Pelanggan</th>
-                                    <th>Kontak & Alamat</th>
-                                    <th class="text-end pe-4">Aksi</th>
+                                    <th class="ps-4" style="width: 35%;">Pelanggan</th>
+                                    <th style="width: 45%;">Kontak & Alamat</th>
+                                    <th class="text-end pe-4" style="width: 20%;"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -179,30 +179,29 @@ $total_pelanggan = pg_fetch_assoc(pg_query($conn, "SELECT COUNT(*) AS total FROM
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center">
                                             <div class="avatar-circle me-3"><?= $inisial ?></div>
-                                            <div>
-                                                <div class="fw-bold text-dark"><?= $row['nama'] ?></div>
+                                            <div style="min-width: 0;"> <div class="fw-bold text-dark text-truncate"><?= $row['nama'] ?></div>
                                                 <div class="small text-secondary" style="font-size: 0.75rem;">ID: <?= $row['id_pelanggan'] ?></div>
                                             </div>
                                         </div>
                                     </td>
-<td>
-    <?php if (!empty($row['hp']) && $row['hp'] !== '-'): ?>
-        <div class="d-flex align-items-center mb-1">
-            <i class="bi bi-whatsapp text-success me-2"></i>
-            <a href="https://wa.me/<?= $row['hp'] ?>" target="_blank" class="text-decoration-none text-dark fw-medium small">
-                <?= $row['hp'] ?>
-            </a>
-        </div>
-    <?php endif; ?>
+                                    <td>
+                                        <?php if (!empty($row['hp']) && $row['hp'] !== '-'): ?>
+                                            <div class="d-flex align-items-center mb-1">
+                                                <i class="bi bi-whatsapp text-success me-2"></i>
+                                                <a href="https://wa.me/<?= $row['hp'] ?>" target="_blank" class="text-decoration-none text-dark fw-medium small">
+                                                    <?= $row['hp'] ?>
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
 
-    <?php if (!empty($row['alamat'])): ?>
-        <div class="text-secondary small lh-sm">
-            <i class="bi bi-geo-alt me-1 opacity-50"></i> <?= $row['alamat'] ?>
-        </div>
-    <?php else: ?>
-        <span class="text-muted small">-</span>
-    <?php endif; ?>
-</td>
+                                        <?php if (!empty($row['alamat'])): ?>
+                                            <div class="text-secondary small lh-sm">
+                                                <i class="bi bi-geo-alt me-1 opacity-50"></i> <?= $row['alamat'] ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-muted small">-</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-end pe-4">
                                         <div class="d-flex justify-content-end gap-2">
                                             <a href="riwayat.php?id=<?= $row['id_pelanggan'] ?>" class="btn-icon btn-gray" title="Riwayat"><i class="bi bi-clock-history"></i></a>

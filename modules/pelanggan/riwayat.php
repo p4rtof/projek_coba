@@ -240,19 +240,19 @@ $total_riwayat = pg_num_rows($q_riwayat);
                         <button type="submit" class="btn btn-light border" style="border-radius: 10px;"><i
                                 class="bi bi-search"></i></button>
                     </form>
-                    <button type="button" id="btnToggleCetak"
+                    <!-- <button type="button" id="btnToggleCetak"
                         class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2"
                         style="border-radius: 10px;">
                         <i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Print
                             Invoice</span>
-                    </button>
+                    </button> -->
                 </div>
             </div>
         </div>
 
         <form action="../transaksi/invoice.php" method="POST">
             <div class="card-modern overflow-hidden">
-                <div id="toolbarCetak"
+                <!-- <div id="toolbarCetak"
                     class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between"
                     style="display:none;">
                     <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i
@@ -261,7 +261,7 @@ $total_riwayat = pg_num_rows($q_riwayat);
                     </div>
                     <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i
                             class="bi bi-printer me-2"></i>PRINT SEKARANG</button>
-                </div>
+                </div> -->
 
                 <div class="table-responsive">
                     <table class="table table-custom mb-0 text-center">
@@ -273,7 +273,7 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                 <th class="text-start">Produk</th>
                                 <th class="text-nowrap">Qty</th>
                                 <th class="text-nowrap">Total</th>
-                                <th class="text-end pe-4 text-nowrap">Aksi</th>
+                                <th class="text-end pe-4 text-nowrap"></th>
                             </tr>
                         </thead>
                         <tbody>

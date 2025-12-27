@@ -261,8 +261,8 @@ if ($is_bayer && isset($available_logos['Bayer'])) {
                         </div>
 
                         <div class="d-flex gap-2">
-                            <a href="../../index.php" class="btn btn-sm btn-light border fw-bold"><i
-                                    class="bi bi-arrow-left me-1"></i>Kembali</a>
+                            <a onclick="window.close()" class="btn btn-sm btn-light border fw-bold"><i
+                                    class="bi bi-arrow-left me-1"></i>Tutup</a>
                             <a href="<?= $link_surat_jalan ?>" target="_blank" class="btn btn-sm btn-dark fw-bold"><i
                                     class="bi bi-truck me-1"></i>Surat Jalan</a>
                             <button onclick="window.print()" class="btn btn-sm btn-primary fw-bold"><i

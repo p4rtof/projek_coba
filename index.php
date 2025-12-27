@@ -120,9 +120,9 @@ $q_transaksi = pg_query($conn, $query_main);
                         </div>
                     </form>
                     
-                    <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2 btn-hover-effect" style="border-radius: 10px;">
+                    <!-- <button type="button" id="btnToggleCetak" class="btn btn-dark d-flex align-items-center gap-2 shadow-sm px-3 py-2 btn-hover-effect" style="border-radius: 10px;">
                         <i class="bi bi-printer-fill"></i> <span class="d-none d-md-inline small fw-bold">Print Invoice</span>
-                    </button>
+                    </button> -->
                     
                     <a href="modules/transaksi/keranjang.php" class="btn btn-modern d-flex align-items-center gap-2 shadow-sm px-4 py-2" style="background-color: #4f46e5; color: white;">
                         <i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline fw-bold">Transaksi Baru</span>
@@ -133,10 +133,10 @@ $q_transaksi = pg_query($conn, $query_main);
 
         <form action="modules/transaksi/invoice.php" method="POST" id="formCetakInvoice" class="animate-fade-3">
             <div class="card-modern overflow-hidden">
-                <div id="toolbarCetak" class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between" style="display:none;">
+                <!-- <div id="toolbarCetak" class="p-3 border-bottom bg-warning bg-opacity-10 d-flex align-items-center justify-content-between" style="display:none;">
                     <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold"><i class="bi bi-info-circle-fill"></i> <span>Mode Print Invoice: Centang satu ID, semua item dengan ID sama otomatis terpilih.</span></div>
                     <button type="submit" class="btn btn-sm btn-dark rounded-pill px-4 shadow-sm fw-bold"><i class="bi bi-printer me-2"></i>PRINT SEKARANG</button>
-                </div>
+                </div> -->
 
                 <div class="table-responsive">
                     <table class="table table-custom mb-0 text-center">
@@ -148,7 +148,7 @@ $q_transaksi = pg_query($conn, $query_main);
                                 <th class="text-start" style="min-width: 300px;">Produk</th>
                                 <th class="text-nowrap">Qty</th>
                                 <th class="text-nowrap" style="min-width: 150px;">Total</th>
-                                <th class="text-end pe-4 text-nowrap">Aksi</th>
+                                <th class="text-end pe-4 text-nowrap"></th>
                             </tr>
                         </thead>
                         <tbody>
