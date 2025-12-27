@@ -145,7 +145,13 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/projek_coba/modules/bank/index.php">Pembayaran</a>
                 </li>
-<!-- 
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/projek_coba/modules/transaksi/form_surat_jalan_custom.php">
+                        <i class="bi me-1"></i>Surat Jalan
+                    </a>
+                </li>
+                <!-- 
                 <li class="nav-item">
                     <a class="nav-link" href="/projek_coba/modules/transaksi/keranjang.php">
                         <i class="bi bi-basket me-1"></i> Keranjang Order
