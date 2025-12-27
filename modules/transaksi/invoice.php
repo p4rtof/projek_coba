@@ -58,66 +58,214 @@ pg_result_seek($result, 0);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body { background: #f0f2f5; font-family: sans-serif; -webkit-print-color-adjust: exact; }
-        .invoice-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .payment-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 8px 12px; font-size: 0.85rem; }
+        /* STYLE LAYAR (PREVIEW) */
+        body { 
+            background: #525659; 
+            font-family: sans-serif; 
+            -webkit-print-color-adjust: exact; 
+        }
+        
+        .container {
+            max-width: 820px; 
+        }
+
+        .invoice-box { 
+            background: white; 
+            padding: 30px 60px; /* Margin dalam layar biasa */
+            min-height: 29.7cm; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
+            margin: 20px auto;
+        }
+
+        .payment-box { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            border-radius: 6px; 
+            padding: 8px 12px; 
+            font-size: 0.85rem; 
+        }
+        
+        /* KOP SURAT */
+        .kop-surat .tagline { 
+            font-size: 0.75rem; 
+            font-weight: 600; 
+            color: #333; 
+            margin-bottom: 3px; 
+        }
+        .kop-surat .pt-name { 
+            font-weight: 700; 
+            font-size: 0.8rem; 
+            color: #000; 
+            margin-bottom: 2px; 
+            letter-spacing: 0.5px;
+            white-space: nowrap; /* PENTING: Agar teks tidak turun ke bawah */
+        }
+        .kop-surat .address { 
+            font-size: 0.8rem; 
+            color: #333; 
+            margin-bottom: 0; 
+            line-height: 1.4; 
+        }
+
+        /* FONT TABEL LEBIH RAPAT (DEMPET) */
+        .table-sm td, .table-sm th { 
+            font-size: 0.85rem; 
+            vertical-align: top; 
+            padding: 3px 5px !important; 
+            border-color: #ffffffff !important;
+        }
+
+        /* --- SETTING CETAK (PRINT) --- */
         @media print {
-            @page { margin: 0; size: auto; } body { background: white; margin: 1cm; }
-            .no-print { display: none !important; } .invoice-box { box-shadow: none; border: none; padding: 0; width: 100%; } .container { max-width: 100%; padding: 0; }
+            @page { 
+                size: A4; 
+                margin: 0; /* Menghilangkan header/footer browser */
+            } 
+            
+            body { 
+                background: white; 
+                margin: 1cm 2.5cm; /* Margin konten invoice */
+            }
+            
+            .no-print { display: none !important; }
+            
+            .container { max-width: 100%; width: 100%; padding: 0; margin: 0; }
+            .invoice-box { 
+                box-shadow: none; border: none; 
+                padding: 0; 
+                margin: 0; 
+                width: 100%; 
+                min-height: auto;
+            }
+            .pt-name { font-size: 11pt !important; }
+            .address { font-size: 9pt !important; }
+            
+            /* Print lebih rapat lagi */
+            td, th { font-size: 9pt !important; padding: 2px 4px !important; }
+            img { height: 50px !important; } 
+            h2 { font-size: 1.5rem !important; }
+            .payment-box { padding: 5px 10px !important; margin-bottom: 10px !important; }
+            .mb-3, .mb-4 { margin-bottom: 10px !important; }
         }
     </style>
 </head>
 <body>
-<div class="container py-3">
+<div class="container py-0 py-md-3">
     <div class="row justify-content-center">
-        <div class="col-lg-9">
-            <div class="text-end mb-3 no-print gap-2 d-flex justify-content-end">
-                <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
-                <button onclick="window.print()" class="btn btn-sm btn-primary rounded-pill px-3"><i class="bi bi-printer-fill me-1"></i>Cetak</button>
+        <div class="col-12">
+            
+            <div class="text-end mb-3 mt-2 no-print gap-2 d-flex justify-content-end sticky-top" style="top: 10px; z-index: 100;">
+                <a href="javascript:history.back()" class="btn btn-sm btn-light border shadow-sm px-3 fw-bold"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+                <button onclick="window.print()" class="btn btn-sm btn-primary shadow-sm px-4 fw-bold"><i class="bi bi-printer-fill me-1"></i>Cetak</button>
             </div>
+
             <div class="invoice-box">
-                <div class="d-flex justify-content-between align-items-start mb-3 border-bottom pb-2">
-                    <div><h4 class="fw-bold text-primary mb-0">Printing</h4><p class="text-muted small mb-0">Jl. Printing Digital No. XXX, Jakarta</p><p class="text-muted small mb-0">WA: 08XX-XXXX-XXXX</p></div>
-                    <div class="text-end"><h3 class="fw-bold text-dark mb-0">INVOICE</h3><span class="text-muted fw-bold small"><?= $mode_judul ?></span></div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-6"><small class="text-muted fw-bold text-uppercase">Kepada:</small><div class="fw-bold text-dark"><?= $first_row['p_nama'] ?></div><div class="small text-muted text-truncate"><?= $first_row['alamat'] ?? '-' ?> | <?= $first_row['hp'] ?? '-' ?></div></div>
-                    
-                    <div class="col-6 text-end">
-                        <div class="small">
-                            <span class="fw-bold">Tgl:</span> <?= date('d/m/y H:i', strtotime($first_row['waktu_order'])) ?>
-                            <br>
-                            <span class="fw-bold text-dark" style="font-size: 0.85rem;">
-                                No. PO: <?= !empty($first_row['no_po']) ? $first_row['no_po'] : '-' ?>
-                            </span>
+                <div class="d-flex justify-content-between align-items-start mb-4 border-bottom pb-3" style="border-bottom: 2px solid #000 !important;">
+                    <div class="d-flex align-items-center">
+                        <img src="../../logo.png.jpeg" alt="Logo" style="height: 40px; object-fit: contain; margin-right: 20px;">
+                        <div class="kop-surat">
+                            <!-- <div class="tagline">Digital printing, Paper printing & Promosion</div> -->
+                            <div class="pt-name">PT. RHAMIZA PERDANA INDONESIA</div>
+                            <p class="address">Jl. Basuki Rahmat No A<br>Kec. Jatinegara, Jakarta Timur</p>
                         </div>
                     </div>
-
+                    <div class="text-end align-self-center">
+                        <h2 class="fw-bold text-dark mb-0" style="letter-spacing: 1px;">INVOICE</h2>
+                        <span class="text-muted fw-bold small"><?= $mode_judul ?></span>
+                    </div>
                 </div>
-                <div class="mb-3"><div class="payment-box"><div class="d-flex align-items-center"><small class="text-muted fw-bold text-uppercase me-2">Bayar via:</small><div class="small"><?php if (($first_row['metode_pembayaran'] ?? '') == 'Transfer'): ?><span><i class="bi bi-bank me-1"></i> <strong><?= $first_row['nama_bank'] ?></strong></span><span class="mx-2">|</span><span><strong><?= $first_row['no_rekening'] ?></strong></span><?php else: ?><span><i class="bi bi-cash me-1"></i> Tunai (Cash)</span><?php endif; ?></div></div></div></div>
-                <div class="table-responsive mb-3">
-                    <table class="table table-bordered border-light mb-0 table-sm">
-                        <thead class="table-light"><tr><th class="py-2 ps-2">Produk</th><th class="py-2 text-center">Qty</th><th class="py-2 text-end">Harga</th><th class="py-2 text-end pe-2">Subtotal</th></tr></thead>
+
+                <div class="row mb-4">
+                    <div class="col-7">
+                        <small class="text-secondary fw-bold text-uppercase" style="font-size: 0.7rem;">Kepada Yth:</small>
+                        <div class="fw-bold text-dark fs-6 mt-1"><?= $first_row['p_nama'] ?></div>
+                        <div class="text-dark small mt-1">
+                            <span class="fw-bold">Telp:</span> <?= !empty($first_row['hp']) ? $first_row['hp'] : '-' ?>
+                        </div>
+                        <div class="text-dark small mt-1" style="white-space: normal; line-height: 1.4; width: 90%;">
+                            <?= !empty($first_row['alamat']) ? $first_row['alamat'] : '-' ?>
+                        </div>
+                    </div>
+                    <div class="col-5 text-end">
+                        <div class="mb-2">
+                            <small class="text-secondary fw-bold text-uppercase" style="font-size: 0.7rem;">Tanggal</small>
+                            <div class="fw-bold text-dark"><?= date('d/m/Y', strtotime($first_row['waktu_order'])) ?></div>
+                        </div>
+                        <div>
+                            <small class="text-secondary fw-bold text-uppercase" style="font-size: 0.7rem;">Nomor PO</small>
+                            <div class="fw-bold text-dark fs-6"><?= !empty($first_row['no_po']) ? $first_row['no_po'] : '-' ?></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="payment-box">
+                        <div class="d-flex align-items-center">
+                            <span class="text-secondary fw-bold text-uppercase me-2" style="font-size: 0.75rem;">Metode Bayar:</span>
+                            <div class="fw-bold text-dark small">
+                                <?php if (($first_row['metode_pembayaran'] ?? '') == 'Transfer'): ?>
+                                    <span><i class="bi bi-bank me-1"></i> <?= $first_row['nama_bank'] ?></span>
+                                    <span class="mx-2">|</span>
+                                    <span><?= $first_row['no_rekening'] ?></span>
+                                <?php else: ?>
+                                    <span><i class="bi bi-cash me-1"></i> Tunai (Cash)</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered border-dark mb-0 table-sm">
+                        <thead style="background-color: #eee;">
+                            <tr>
+                                <th class="text-start text-dark" style="width: 52%;">Deskripsi Produk</th>
+                                <th class="text-center text-dark" style="width: 8%;">Qty</th>
+                                <th class="text-end text-dark" style="width: 20%;">Harga</th>
+                                <th class="text-end text-dark" style="width: 20%;">Subtotal</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             <?php $grand_total = 0; while($row = pg_fetch_assoc($result)): $grand_total += $row['total_harga']; ?>
                             <tr>
-                                <td class="ps-2 py-2"><span class="fw-bold text-dark small"><?= $row['nama_produk'] ?></span><?php if(isset($_GET['item_id'])): ?><br><small class="text-muted" style="font-size: 0.65rem;">Ref: #<?= $row['id_transaksi'] ?></small><?php endif; ?><?php if($row['panjang'] > 0): ?><br><small class="text-muted fst-italic" style="font-size: 0.7rem;">Ukuran: <?= floatval($row['panjang']) ?>m x <?= floatval($row['lebar']) ?>m</small><?php endif; ?></td>
-                                <td class="text-center py-2 small"><?= number_format($row['jumlah']) ?></td>
-                                <td class="text-end py-2 small">Rp <?= number_format($row['harga_satuan'], 0, ',','.') ?></td>
-                                <td class="text-end pe-2 py-2 fw-bold small">Rp <?= number_format($row['total_harga'], 0, ',','.') ?></td>
+                                <td class="text-start">
+                                    <span class="fw-bold text-dark small"><?= $row['nama_produk'] ?></span>
+                                    <?php if(isset($_GET['item_id'])): ?><br><small class="text-muted" style="font-size: 0.65rem;">Ref: #<?= $row['id_transaksi'] ?></small><?php endif; ?>
+                                    <?php if($row['panjang'] > 0): ?>
+                                        <div class="text-muted fst-italic" style="font-size: 0.7rem; margin-top: 1px;">
+                                            Ukuran: <?= floatval($row['panjang']) ?>m x <?= floatval($row['lebar']) ?>m
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-center small fw-bold"><?= number_format($row['jumlah']) ?></td>
+                                <td class="text-end small">Rp <?= number_format($row['harga_satuan'], 0, ',','.') ?></td>
+                                <td class="text-end small fw-bold text-dark">Rp <?= number_format($row['total_harga'], 0, ',','.') ?></td>
                             </tr>
                             <?php endwhile; ?>
                         </tbody>
+                        <tfoot style="border-top: 2px solid #000;">
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold small pe-2">TOTAL TAGIHAN</td>
+                                <td class="text-end fw-bold fs-6 text-dark">Rp <?= number_format($grand_total, 0, ',','.') ?></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
-                <div class="row mt-4">
-                    <div class="col-7"></div>
-                    <div class="col-5">
-                        <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-2"><span class="fw-bold text-secondary">TOTAL</span><span class="fw-bold text-primary fs-5">Rp <?= number_format($grand_total, 0, ',','.') ?></span></div>
-                        <div class="text-center mt-4"><p class="mb-5 fw-bold small text-muted">Hormat Kami,</p><br><p class="fw-bold mb-0 text-decoration-underline text-dark small">XXX Printing</p></div>
+
+                <div class="row mt-5">
+                    <div class="col-6 text-center">
+                        <p class="mb-5 fw-bold small text-dark" style="font-size: 0.8rem;">TANDA TERIMA</p>
+                        <!-- <br>
+                        <p class="fw-bold mb-0 text-dark small">.....................................</p> -->
+                    </div>
+                    <div class="col-6 text-center">
+                        <p class="mb-5 fw-bold small text-dark" style="font-size: 0.8rem;">HORMAT KAMI</p>
+                        <!-- <br>
+                        <p class="fw-bold mb-0 text-decoration-underline text-dark small">(.................................)</p> -->
                     </div>
                 </div>
-                <div class="text-center mt-3 pt-2 border-top"><small class="text-muted fst-italic" style="font-size: 0.7rem;">Terima kasih.</small></div>
+
+                <div class="text-center mt-5 pt-3 border-top"><small class="text-secondary fst-italic" style="font-size: 0.7rem;">Terima kasih atas kepercayaan Anda.</small></div>
             </div>
         </div>
     </div>
