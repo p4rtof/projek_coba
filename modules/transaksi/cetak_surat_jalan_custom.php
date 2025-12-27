@@ -65,6 +65,7 @@ $tanggal_indo = date('d', $ts) . ' ' . $bulan_indo[date('n', $ts)] . ' ' . date(
             font-weight: 800;
             font-size: 24px;
             text-transform: uppercase;
+            margin-top: 20px;
             margin-bottom: 15px;
         }
 
