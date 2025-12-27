@@ -144,9 +144,9 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/projek_coba/modules/produk/index.php">Produk</a>
                 </li>
-                <li class="nav-item">
+                <!-- <li class="nav-item">
                     <a class="nav-link" href="/projek_coba/modules/bank/index.php">Pembayaran</a>
-                </li>
+                </li> -->
 
                 <li class="nav-item">
                     <a class="nav-link" href="/projek_coba/modules/transaksi/form_surat_jalan_custom.php">

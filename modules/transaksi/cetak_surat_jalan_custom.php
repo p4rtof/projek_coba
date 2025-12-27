@@ -10,6 +10,11 @@ $penerima_alamat = $_POST['penerima_alamat'] ?? '-';
 $headers = $_POST['headers'] ?? [];
 $items = $_POST['items'] ?? [];
 $values = $_POST['values'] ?? [];
+
+// --- [BARU] FORMAT TANGGAL INDONESIA (12 Desember 2025) ---
+$ts = strtotime($tanggal);
+$bulan_indo = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+$tanggal_indo = date('d', $ts) . ' ' . $bulan_indo[date('n', $ts)] . ' ' . date('Y', $ts);
 ?>
 
 <!DOCTYPE html>
@@ -49,7 +54,6 @@ $values = $_POST['values'] ?? [];
             color: #333;
         }
 
-        /* Lebar label tetap */
         .sep-col {
             width: 20px;
             text-align: center;
@@ -57,6 +61,7 @@ $values = $_POST['values'] ?? [];
 
         /* JUDUL SURAT JALAN BESAR */
         .main-title {
+            text-align: left;
             font-weight: 800;
             font-size: 24px;
             text-transform: uppercase;
@@ -85,7 +90,7 @@ $values = $_POST['values'] ?? [];
 
         .table-custom tbody td {
             border: 1px solid #000;
-            padding: 6px 8px;
+            padding: 4px 8px;
             vertical-align: middle;
             font-size: 13px;
         }
@@ -137,7 +142,7 @@ $values = $_POST['values'] ?? [];
     <div class="container py-4">
 
         <div class="no-print position-fixed top-0 end-0 p-3" style="z-index:999;">
-            <button onclick="history.back()" class="btn btn-secondary shadow-sm me-2">Kembali</button>
+            <button onclick="history.back()" class="btn  shadow-sm me-2"><a href="../../index.php">Kembali</a></button>
             <button onclick="window.print()" class="btn btn-primary shadow-sm"><i class="bi bi-printer"></i>
                 Cetak</button>
         </div>
@@ -182,7 +187,7 @@ $values = $_POST['values'] ?? [];
 
         <div class="d-flex justify-content-between align-items-end mb-2">
             <h4 class="fw-bold m-0 text-uppercase"><?= $judul_surat ?></h4>
-            <div style="font-size: 14px;">Tanggal : <b><?= date('d/m/Y', strtotime($tanggal)) ?></b></div>
+            <div style="font-size: 14px;">Tanggal : <b><?= $tanggal_indo ?></b></div>
         </div>
 
         <table class="table-custom">
@@ -224,18 +229,14 @@ $values = $_POST['values'] ?? [];
             </tbody>
         </table>
 
-        <!-- <div class="row mt-5 pt-4">
-        <div class="col-6 text-start">
-            <div class="mb-5">TANDA TERIMA</div>
-            <br>
-            <div>( ..................................... )</div>
+        <div class="row mt-5" style="page-break-inside: avoid;">
+            <div class="col-6 text-center">
+                <p class="mb-5 fw-bold" style="margin-bottom: 80px !important;">Tanda Terima</p>
+                </div>
+            <div class="col-6 text-center">
+                <p class="mb-5 fw-bold" style="margin-bottom: 80px !important;">Hormat Kami</p>
+                </div>
         </div>
-        <div class="col-6 text-end">
-            <div class="mb-5">HORMAT KAMI</div>
-            <br>
-            <div class="fw-bold text-uppercase me-4">PT. RHAMIZA PERDANA</div>
-        </div>
-    </div> -->
 
     </div>
 
