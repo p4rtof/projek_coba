@@ -206,7 +206,7 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                 <i class="bi bi-whatsapp text-success"></i> <?= $p['hp'] ?>
                             </a>
                         <?php else: ?>
-                            <div class="info-pill-wa text-muted"><i class="bi bi-telephone-x"></i> No HP -</div>
+                            <div class="info-pill-wa text-muted"><i class="bi bi-telephone-x"></i></div>
                         <?php endif; ?>
 
                         <div class="info-pill-alamat text-dark">
@@ -286,7 +286,7 @@ $total_riwayat = pg_num_rows($q_riwayat);
                                         </td>
                                         
                                         <td class="text-start text-nowrap">
-                                            <div class="fw-bold text-primary">#<?= $r['id_transaksi'] ?></div>
+                                            <div class="fw-bold text-primary"><?= $r['id_transaksi'] ?></div>
                                             <?php if(!empty($r['no_po'])): ?>
                                                 <div class="small fw-bold text-dark mt-1" style="font-size: 0.8rem;">PO: <?= $r['no_po'] ?></div>
                                             <?php endif; ?>

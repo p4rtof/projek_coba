@@ -143,7 +143,7 @@ $tanggal_indo = date('d', $ts) . ' ' . $bulan_indo[date('n', $ts)] . ' ' . date(
     <div class="container py-4">
 
         <div class="no-print position-fixed top-0 end-0 p-3" style="z-index:999;">
-            <button onclick="history.back()" class="btn  shadow-sm me-2"><a href="../../index.php">Kembali</a></button>
+            <button onclick="window.close()" class="btn  shadow-sm me-2">Kembali</button>
             <button onclick="window.print()" class="btn btn-primary shadow-sm"><i class="bi bi-printer"></i>
                 Cetak</button>
         </div>
