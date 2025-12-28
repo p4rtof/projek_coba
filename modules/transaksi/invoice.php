@@ -36,7 +36,7 @@ if (isset($_GET['item_id'])) {
 }
 
 $unique_ids = array_unique($ids_to_check);
-$mode_judul = (count($unique_ids) === 1) ? "#" . reset($unique_ids) : "#GABUNGAN";
+$mode_judul = (count($unique_ids) === 1) ? "" . reset($unique_ids) : "#GABUNGAN";
 $link_surat_jalan = "surat_jalan.php?" . implode("&", $params_sj);
 
 // --- QUERY DATA UTAMA ---
